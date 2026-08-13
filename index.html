@@ -6,6 +6,8 @@
     <meta name="description" content="校园猫猫档案:全校流浪猫的趣味档案户口本,认识每一只校园猫咪">
     <title>🐾 校园猫猫档案</title>
     <link rel="stylesheet" href="styles.css">
+    <!-- 腾讯云开发 Web SDK(在线编辑版数据接入) -->
+    <script src="https://static.cloudbase.net/cloudbase-js-sdk/2.4.4/index.js"></script>
 </head>
 <body>
 
@@ -13,7 +15,15 @@
     <header class="header">
         <h1 class="header-title">🐾 校园猫猫档案</h1>
         <p class="header-sub">全校猫咪的「户口本」,一起来认识它们吧</p>
+        <!-- 管理模式入口(点击弹出密码输入) -->
+        <button class="admin-toggle" id="adminToggle">🔑 管理模式</button>
     </header>
+
+    <!-- 管理模式操作栏(仅管理模式显示) -->
+    <div class="admin-bar hidden" id="adminBar">
+        <button class="btn-add" id="btnAdd">＋ 新增猫咪</button>
+        <span class="admin-hint">已进入管理模式,可直接点卡片上的「编辑」</span>
+    </div>
 
     <!-- 搜索框 -->
     <div class="search-box">
@@ -27,6 +37,14 @@
         <button class="chip" data-filter="已领养">已领养</button>
         <button class="chip" data-filter="已离世">已离世</button>
     </nav>
+
+    <!-- 加载与错误提示 -->
+    <div class="loading hidden" id="loadingBox">🐾 正在加载档案…</div>
+    <div class="empty hidden" id="errorBox">
+        <div class="empty-icon">📡</div>
+        <p id="errorText">数据加载失败</p>
+        <p class="empty-sub">请确认云开发已开通、环境 ID 已填写、云函数已部署(见部署手册)</p>
+    </div>
 
     <!-- 猫猫卡片列表 -->
     <main class="list" id="catList"></main>
@@ -44,13 +62,36 @@
         <div class="modal-body" id="modalBody"></div>
     </div>
 
+    <!-- 密码弹层 -->
+    <div class="modal hidden" id="passwordModal">
+        <div class="modal-mask" id="passwordMask"></div>
+        <div class="modal-body modal-narrow" id="passwordBody">
+            <div class="form-card">
+                <div class="form-title">🔑 管理模式</div>
+                <p class="form-tip">输入管理员密码后,可以新增、编辑、删除猫猫档案</p>
+                <input id="passwordInput" class="form-input" type="password" placeholder="请输入管理员密码" autocomplete="off">
+                <p class="form-error hidden" id="passwordError">密码错误,请重试</p>
+                <div class="form-btns">
+                    <button class="btn-ghost" id="passwordCancel">取消</button>
+                    <button class="btn-primary" id="passwordConfirm">进入管理</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 编辑弹层(新增/编辑共用) -->
+    <div class="modal hidden" id="editModal">
+        <div class="modal-mask" id="editMask"></div>
+        <div class="modal-body" id="editBody"></div>
+    </div>
+
     <!-- 底部提示 -->
     <footer class="footer">
         <p>🔒 为保护猫咪安全,档案不含具体出没位置</p>
         <p>🐾 校园猫猫档案 · 分享让更多人认识它们</p>
     </footer>
 
-    <script src="data.js"></script>
+    <script src="cloudbase-config.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
