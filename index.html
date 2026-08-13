@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="description" content="校园猫猫档案:全校流浪猫的趣味档案户口本,认识每一只校园猫咪">
+    <title>🐾 校园猫猫档案</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- 顶部标题 -->
+    <header class="header">
+        <h1 class="header-title">🐾 校园猫猫档案</h1>
+        <p class="header-sub">全校猫咪的「户口本」,一起来认识它们吧</p>
+    </header>
+
+    <!-- 搜索框 -->
+    <div class="search-box">
+        <input id="searchInput" class="search-input" type="search" placeholder="🔍 搜一搜猫猫名字…" autocomplete="off">
+    </div>
+
+    <!-- 状态筛选 -->
+    <nav class="filters" id="filters">
+        <button class="chip active" data-filter="全部">全部</button>
+        <button class="chip" data-filter="待领养">待领养</button>
+        <button class="chip" data-filter="已领养">已领养</button>
+        <button class="chip" data-filter="已离世">已离世</button>
+    </nav>
+
+    <!-- 猫猫卡片列表 -->
+    <main class="list" id="catList"></main>
+
+    <!-- 空状态 -->
+    <div class="empty hidden" id="emptyBox">
+        <div class="empty-icon">🐱</div>
+        <p>没有找到符合条件的猫猫</p>
+        <p class="empty-sub">换个关键词或筛选条件试试</p>
+    </div>
+
+    <!-- 详情弹层 -->
+    <div class="modal hidden" id="detailModal">
+        <div class="modal-mask" id="modalMask"></div>
+        <div class="modal-body" id="modalBody"></div>
+    </div>
+
+    <!-- 底部提示 -->
+    <footer class="footer">
+        <p>🔒 为保护猫咪安全,档案不含具体出没位置</p>
+        <p>🐾 校园猫猫档案 · 分享让更多人认识它们</p>
+    </footer>
+
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
