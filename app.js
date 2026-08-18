@@ -20,6 +20,32 @@ let isAdmin = false;            // 是否处于管理模式
 let adminPassword = '';         // 本次会话的管理密码(仅存内存)
 let editingCat = null;          // 正在编辑的猫(含 _id;null 表示新增)
 
+/** 从档案中提取照片列表(兼容新旧两种格式)
+ *  新数据:photos = ['cloud://...', ...](数组)
+ *  旧数据:photo = 'cloud://...'(字符串)
+ *  返回 { urls: [...], ids: [...], count: N }
+ */
+const MAX_PHOTOS = 9;
+function getPhotos(cat) {
+    if (!cat) return { urls: [], ids: [], count: 0 };
+    const ids = [];
+    if (Array.isArray(cat.photos) && cat.photos.length) {
+        cat.photos.forEach(p => {
+ if (p) ids.push(p);
+        });
+    } else if (cat.photo) {
+        ids.push(cat.photo);
+    }
+    const urls = ids.map((_, i) => {
+        if (Array.isArray(cat.photos)) {
+            // 优先用对应的 photoUrls[i],fallback photoUrl
+            return (cat.photoUrls && cat.photoUrls[i]) || cat.photoUrl || '';
+        }
+        return cat.photoUrl || '';
+    });
+    return { urls, ids, count: ids.length };
+}
+
 // ========== 云开发初始化 ==========
 const cloudApp = cloudbase.init({ env: CLOUD_ENV_ID });
 
@@ -79,11 +105,16 @@ function renderList(list) {
         card.className = 'cat-card';
         card.onclick = () => openDetail(cat);
 
-        const photoUrl = cat.photoUrl || '';
+        const photos = getPhotos(cat);
+        const firstUrl = photos.urls[0] || '';
+        const photoCount = photos.count;
         card.innerHTML = `
-            <img class="cat-photo ${cat.adoption_status === '已离世' ? 'passed' : ''}"
-                 src="${escapeHtml(photoUrl)}" alt="${escapeHtml(cat.name)}"
-                 onerror="this.style.visibility='hidden'">
+            <div class="cat-photo-wrap">
+                <img class="cat-photo ${cat.adoption_status === '已离世' ? 'passed' : ''}"
+                     src="${escapeHtml(firstUrl)}" alt="${escapeHtml(cat.name)}"
+                     onerror="this.style.visibility='hidden'">
+                ${photoCount > 1 ? `<span class="photo-count">${photoCount}</span>` : ''}
+            </div>
             <div class="cat-info">
                 <div class="cat-name-row">
                     <span class="cat-name">${escapeHtml(cat.name)}</span>
@@ -161,21 +192,53 @@ async function loadCats() {
 /** 打开详情 */
 function openDetail(cat) {
     const isPassed = cat.adoption_status === '已离世';
-    const photoUrl = cat.photoUrl || '';
-    modalBody.innerHTML = `
-        <div class="detail-hero">
-            <button class="detail-close" id="detailClose">✕</button>
-            <img class="detail-photo ${isPassed ? 'passed' : ''}" src="${escapeHtml(photoUrl)}" alt="${escapeHtml(cat.name)}">
-            <div class="detail-mask"></div>
-            <div class="detail-hero-info">
-                <div class="detail-name-row">
-                    <span class="detail-name">${escapeHtml(cat.name)}</span>
-                    <span class="badge ${BADGE_MAP[cat.adoption_status] || 'badge-other'}">${escapeHtml(cat.adoption_status)}</span>
-                </div>
-                <div class="detail-title">🎭 ${escapeHtml(cat.title)}</div>
-            </div>
-        </div>
+    const photos = getPhotos(cat);
+    const photoUrls = photos.urls;
+    const photoCount = photoCount(photos);
 
+    const heroHtml = photoCount > 0
+        ? `
+            <div class="detail-hero">
+                <button class="detail-close" id="detailClose">✕</button>
+                <div class="detail-swiper" id="detailSwiper">
+                    ${photoUrls.map(url => `
+                        <img class="detail-photo ${isPassed ? 'passed' : ''}"
+                             src="${escapeHtml(url)}" alt="${escapeHtml(cat.name)}">
+                    `).join('')}
+                    ${photoCount > 1 ? `
+                        <div class="swiper-dots">
+                            ${photoUrls.map((_, i) => `<span class="swiper-dot ${i === 0 ? 'active' : ''}" data-i="${i}"></span>`).join('')}
+                        </div>
+                        <div class="swiper-counter">${photoCount > 1 ? `1 / ${photoCount}` : ''}</div>
+                    ` : ''}
+                </div>
+                <div class="detail-mask"></div>
+                <div class="detail-hero-info">
+                    <div class="detail-name-row">
+                        <span class="detail-name">${escapeHtml(cat.name)}</span>
+                        <span class="badge ${BADGE_MAP[cat.adoption_status] || 'badge-other'}">${escapeHtml(cat.adoption_status)}</span>
+                    </div>
+                    <div class="detail-title">🎭 ${escapeHtml(cat.title)}</div>
+                </div>
+            </div>
+        `
+        : `
+            <div class="detail-hero">
+                <button class="detail-close" id="detailClose">✕</button>
+                <div class="detail-photo placeholder">
+                    <div class="placeholder-icon">🐱</div>
+                </div>
+                <div class="detail-hero-info">
+                    <div class="detail-name-row">
+                        <span class="detail-name">${escapeHtml(cat.name)}</span>
+                        <span class="badge ${BADGE_MAP[cat.adoption_status] || 'badge-other'}">${escapeHtml(cat.adoption_status)}</span>
+                    </div>
+                    <div class="detail-title">🎭 ${escapeHtml(cat.title)}</div>
+                </div>
+            </div>
+        `;
+
+    modalBody.innerHTML = heroHtml + `
         <div class="detail-card">
             <div class="detail-section-title">🧬 基本信息</div>
             ${infoRow('品种/特征', cat.breed || '未知')}
@@ -211,6 +274,41 @@ function openDetail(cat) {
     detailModal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
     document.getElementById('detailClose').onclick = closeDetail;
+
+    // 绑定轮播切换(如果有照片)
+    if (photoCount > 1) {
+        bindSwiperEvents();
+    }
+}
+
+/** 获取照片数量(辅助) */
+function photoCount(photos) {
+    return photos && photos.count ? photos.count : 0;
+}
+
+/** 绑定轮播图切换(点击轮播切换图片) */
+function bindSwiperEvents() {
+    const swiper = document.getElementById('detailSwiper');
+    const photos = swiper.querySelectorAll('.detail-photo');
+    const dots = swiper.querySelectorAll('.swiper-dot');
+    const counter = swiper.querySelector('.swiper-counter');
+    let current = 0;
+    const total = photos.length;
+
+    const show = (i) => {
+        current = (i + total) % total;
+        photos.forEach((p, idx) => p.style.display = idx === current ? 'block' : 'none');
+        dots.forEach((d, idx) => d.classList.toggle('active', idx === current));
+        if (counter) counter.textContent = `${current + 1} / ${total}`;
+    };
+
+    // 初始隐藏非当前图
+    photos.forEach((p, idx) => p.style.display = idx === 0 ? 'block' : 'none');
+
+    // 点击切换
+    swiper.onclick = () => show(current + 1);
+    // 点击指示器
+    dots.forEach((dot, i) => dot.onclick = (e) => { e.stopPropagation(); show(i); });
 }
 
 /** 生成一条信息行 */
@@ -279,25 +377,47 @@ function exitAdmin() {
 /** 打开编辑表单 */
 function openEditForm(cat) {
     editingCat = cat || null;   // 有值 = 编辑;null = 新增
+    deletedPhotos = [];
+    // 从 cat 提取现有照片(兼容旧 photo 字段)
+    const initialPhotos = [];
+    if (cat) {
+        if (Array.isArray(cat.photos) && cat.photos.length) {
+            cat.photos.forEach((id, i) => {
+                initialPhotos.push({
+                    fileID: id,
+                    previewUrl: (cat.photoUrls && cat.photoUrls[i]) || cat.photoUrl || '',
+                    isNew: false,
+                    file: null
+                });
+            });
+        } else if (cat.photo) {
+            initialPhotos.push({
+                fileID: cat.photo,
+                previewUrl: cat.photoUrl || '',
+                isNew: false,
+                file: null
+            });
+        }
+    }
+    editingPhotos = initialPhotos.slice(0, MAX_PHOTOS);
+
     const f = cat || {
         name: '', title: '', breed: '', gender: '未知', age: '',
         adoption_status: '待领养', health: '', neutered: true, source: '',
-        traits: [], stories: [], photo: '', photoUrl: ''
+        traits: [], stories: []
     };
     editBody.innerHTML = `
         <div class="form-card">
             <div class="form-title">${cat ? `✏️ 编辑「${escapeHtml(cat.name)}」` : '🐱 新增猫猫档案'}</div>
 
-            <!-- 照片 -->
-            <div class="form-photo-row">
-                <img class="form-photo ${f.photoUrl ? '' : 'hidden'}" id="formPhoto" src="${escapeHtml(f.photoUrl)}" alt="猫咪照片">
-                <div class="form-photo-ops">
-                    <label class="btn-ghost btn-small">
-                        📷 ${f.photo ? '更换照片' : '上传照片'}
-                        <input type="file" id="photoFile" accept="image/*" class="hidden-input">
-                    </label>
-                    ${f.photo ? '<button class="btn-ghost btn-small btn-danger" id="removePhoto">移除</button>' : ''}
-                </div>
+            <!-- 多图区(最多 ${MAX_PHOTOS} 张) -->
+            <div class="form-block">
+                <label class="form-label">猫咪照片 <span class="form-hint">(最多 ${MAX_PHOTOS} 张,可长按/点 ✕ 删除)</span></label>
+                <div class="photo-grid" id="photoGrid"></div>
+                <label class="btn-ghost btn-small photo-add-btn" id="photoAddBtn">
+                    ＋ 添加照片
+                    <input type="file" id="photoFile" accept="image/*" multiple class="hidden-input">
+                </label>
             </div>
 
             <div class="form-row">
@@ -368,12 +488,74 @@ function openEditForm(cat) {
     // 表单事件
     document.getElementById('btnCancel').onclick = closeEditForm;
     document.getElementById('btnSave').onclick = () => saveForm();
-    document.getElementById('photoFile').onchange = onPhotoSelected;
-    const removeBtn = document.getElementById('removePhoto');
-    if (removeBtn) removeBtn.onclick = removePhoto;
+    document.getElementById('photoFile').onchange = onPhotosSelected;
+
+    renderPhotoGrid();
 
     editModal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
+}
+
+/** 渲染照片网格(预览 + 删除按钮) */
+function renderPhotoGrid() {
+    const grid = document.getElementById('photoGrid');
+    if (!grid) return;
+    grid.innerHTML = editingPhotos.map((p, idx) => `
+        <div class="photo-grid-item" data-idx="${idx}">
+            <img class="photo-grid-img ${p.isNew ? 'is-new' : ''}" src="${escapeHtml(p.previewUrl)}" alt="照片${idx + 1}">
+            <button type="button" class="photo-grid-del" data-idx="${idx}">✕</button>
+        </div>
+    `).join('');
+    grid.querySelectorAll('.photo-grid-del').forEach(btn => {
+        btn.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            removePhotoAt(parseInt(btn.dataset.idx, 10));
+        };
+    });
+    const addBtn = document.getElementById('photoAddBtn');
+    if (addBtn) {
+        addBtn.style.display = editingPhotos.length >= MAX_PHOTOS ? 'none' : '';
+    }
+}
+
+/** 删除指定索引的照片 */
+function removePhotoAt(idx) {
+    if (idx < 0 || idx >= editingPhotos.length) return;
+    const removed = editingPhotos.splice(idx, 1)[0];
+    if (removed && removed.fileID && !removed.isNew) {
+        deletedPhotos.push(removed.fileID);
+    }
+    renderPhotoGrid();
+}
+
+/** 选择多张照片 */
+function onPhotosSelected(e) {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    const remain = MAX_PHOTOS - editingPhotos.length;
+    const toAdd = files.slice(0, remain);
+    if (files.length > remain) {
+        alert(`最多只能上传 ${MAX_PHOTOS} 张照片,已忽略多余的`);
+    }
+    toAdd.forEach(file => {
+        if (!/^image\//.test(file.type)) {
+            alert(`文件 ${file.name} 不是图片,已跳过`);
+            return;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            alert(`图片 ${file.name} 超过 5MB,已跳过`);
+            return;
+        }
+        editingPhotos.push({
+            fileID: null,
+            previewUrl: URL.createObjectURL(file),
+            isNew: true,
+            file: file
+        });
+    });
+    renderPhotoGrid();
+    e.target.value = '';
 }
 
 /** 关闭编辑表单 */
@@ -381,39 +563,8 @@ function closeEditForm() {
     editModal.classList.add('hidden');
     document.body.style.overflow = '';
     editingCat = null;
-}
-
-/** 选择照片:本地预览,保存时才上传 */
-function onPhotoSelected(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-    // 简单校验:必须是图片,且 ≤ 5MB
-    if (!/^image\//.test(file.type)) {
-        alert('请选择图片文件');
-        return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-        alert('图片不能超过 5MB,请压缩后重试');
-        return;
-    }
-    // 预览
-    const photoImg = document.getElementById('formPhoto');
-    photoImg.src = URL.createObjectURL(file);
-    photoImg.classList.remove('hidden');
-    // 暂存文件引用(保存时才真正上传)
-    editModal.__newPhotoFile = file;
-}
-
-/** 移除新选择的照片 */
-function removePhoto() {
-    const photoImg = document.getElementById('formPhoto');
-    const f = editingCat || {};
-    if (f.photoUrl) {
-        photoImg.src = f.photoUrl;   // 恢复原图
-    } else {
-        photoImg.classList.add('hidden');
-    }
-    editModal.__newPhotoFile = null;
+    editingPhotos = [];
+    deletedPhotos = [];
 }
 
 /** 把多行文本拆成数组(去除空行) */
@@ -445,23 +596,36 @@ async function saveForm() {
         source: document.getElementById('f-source').value.trim(),
         traits: textToArray(document.getElementById('f-traits').value),
         stories: textToArray(document.getElementById('f-stories').value),
-        photo: editingCat ? editingCat.photo : '',
+        // 多图字段:photos 数组(每个元素是 fileID)
+        photos: editingPhotos.filter(p => p.fileID).map(p => p.fileID),
+        // 同时保留 photo 字段兼容旧逻辑(取第一张)
+        photo: editingPhotos.length ? (editingPhotos.find(p => p.fileID)?.fileID || '') : '',
+        deletedPhotos,
         adminPassword
     };
 
-    // 若选择了新照片,先上传云存储拿 fileID
-    const newFile = editModal.__newPhotoFile;
-    if (newFile) {
-        try {
-            showError('');
-            errorEl.textContent = '照片上传中…';
-            errorEl.classList.remove('hidden');
-            const cloudPath = `photos/${Date.now()}-${Math.floor(Math.random() * 100000)}.${(newFile.name.match(/\.(\w+)$/) || [])[1] || 'jpg'}`;
-            const upRes = await cloudApp.uploadFile({ cloudPath, filePath: newFile });
-            payload.photo = upRes.fileID;
-        } catch (err) {
-            return showError('照片上传失败,请重试');
+    // 1. 上传所有新选的照片(还没有 fileID 的)
+    const newFiles = editingPhotos.filter(p => p.isNew && p.file).map(p => p.file);
+    if (newFiles.length) {
+        errorEl.textContent = `上传 ${newFiles.length} 张照片中…`;
+        errorEl.classList.remove('hidden');
+        for (let i = 0; i < newFiles.length; i++) {
+            const file = newFiles[i];
+            try {
+                const ext = (file.name.match(/\.(\w+)$/) || [])[1] || 'jpg';
+                const cloudPath = `photos/${Date.now()}-${Math.floor(Math.random() * 100000)}.${ext}`;
+                const upRes = await cloudApp.uploadFile({ cloudPath, filePath: file });
+                // 找到对应预览位置,设置 fileID
+                const idx = editingPhotos.findIndex(p => p.file === file);
+                if (idx >= 0) editingPhotos[idx].fileID = upRes.fileID;
+                // 写入 payload
+                payload.photos.push(upRes.fileID);
+            } catch (err) {
+                return showError(`第 ${i + 1} 张照片上传失败: ${err.message || err}`);
+            }
         }
+        // 更新 payload 中的 photo 字段
+        payload.photo = payload.photos[0] || '';
     }
 
     try {
