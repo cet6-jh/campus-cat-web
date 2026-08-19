@@ -2,6 +2,9 @@
 // 数据从 data.js 加载,通过 GitHub API 实现网页编辑
 
 const CFG = window.APP_CONFIG;
+
+// 优先从 localStorage 读取 GitHub Token(更安全,不暴露在 GitHub 上)
+CFG.GH_TOKEN = localStorage.getItem('gh_token') || CFG.GH_TOKEN || '';
 let cats = [];
 let currentFilter = '全部';
 let currentKeyword = '';

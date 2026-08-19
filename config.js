@@ -14,7 +14,9 @@ const GH_REPO = 'campus-cat-web';     // 仓库名
 const GH_BRANCH = 'main';;            // 分支名
 const GH_FILE_PATH = 'data.js';        // 数据文件路径(在仓库中的路径)
 const GH_FILE_PATH_PHOTOS = 'photos';  // 图片文件夹路径
-const GH_TOKEN = '';                   // ★ 必填:GitHub Personal Access Token
+// 运行时优先从 localStorage.gh_token 读取(浏览器本地,不保存到 GitHub)
+// 这样配置文件中就不会有 token,GitHub 自动拦截也不会误报
+const GH_TOKEN = localStorage.getItem('gh_token') || '';   // ★ 在浏览器 Console 执行: localStorage.setItem('gh_token', '你的GitHub PAT')
 
 // 导出(全局变量,方便 app.js 使用)
 window.APP_CONFIG = {
