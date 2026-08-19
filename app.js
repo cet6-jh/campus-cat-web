@@ -1,97 +1,49 @@
-// web/app.js —— 校园猫猫档案网页版(零依赖版,直接 HTTP 调用云函数)
-// 云函数需要在微信云开发控制台启用 HTTP 触发路径
-// 从 cloudbase-config.js 注入(已配 cloud1-d7gu5dy8z80af58cd)
-const CLOUD_ENV_ID = (typeof CLOUD_ENV_ID !== 'undefined' && CLOUD_ENV_ID)
-    || 'cloud1-d7gu5dy8z80af58cd';
-const FUNCTION_BASE = `https://${CLOUD_ENV_ID}.service.tcloudbase.com/functions`;
+// app.js —— 校园猫猫档案(在线编辑版)
+// 数据从 data.js 加载,通过 GitHub API 实现网页编辑
 
-// ========== 状态 ==========
-const STATUS_OPTIONS = ['待领养', '已领养', '暂不领养', '已离世'];
-const GENDER_OPTIONS = ['公', '母', '未知'];
+const CFG = window.APP_CONFIG;
+let cats = [];
+let currentFilter = '全部';
+let currentKeyword = '';
+let isAdmin = false;
+
+// ===== 状态徽章 =====
 const BADGE_MAP = {
     '待领养': 'badge-adoptable',
     '已领养': 'badge-adopted',
     '已离世': 'badge-passed',
     '暂不领养': 'badge-other'
 };
-const MAX_PHOTOS = 9;
 
-let currentFilter = '全部';
-let currentKeyword = '';
-let cats = [];
-let isAdmin = false;
-let adminPassword = '';
-let editingCat = null;
-let editingPhotos = [];
-let deletedPhotos = [];
-
-async function callFn(name, data = {}) {
-    const url = `${FUNCTION_BASE}/${name}`;
-    const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data || {})
-    });
-    const body = await res.json().catch(() => ({}));
-    if (body && body.success === false) {
-        throw new Error(body.message || '操作失败');
+// ===== 加载数据 =====
+function load() {
+    try {
+        cats = window.CATS_DATA || [];
+        renderList(getFiltered());
+    } catch (err) {
+        document.getElementById('errorBox').classList.remove('hidden');
+        document.getElementById('errorBox').textContent = '数据加载失败:' + err.message;
+    } finally {
+        document.getElementById('loadingBox').classList.add('hidden');
     }
-    return body || {};
 }
 
-async function uploadPhoto(file) {
-    const base64 = await fileToBase64(file);
-    const r = await callFn('webUploadPhoto', {
-        fileName: file.name || 'photo.jpg',
-        contentType: file.type || 'image/jpeg',
-        data: base64
-    });
-    if (!r.fileID) throw new Error(r.message || '上传失败');
-    return r.fileID;
-}
-
-function fileToBase64(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result.split(',')[1]);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
+// ===== 列表渲染 =====
+function getFiltered() {
+    const kw = currentKeyword.trim();
+    return cats.filter(cat => {
+        if (currentFilter !== '全部' && cat.adoption_status !== currentFilter) return false;
+        if (kw) {
+            const text = `${cat.name || ''}${cat.title || ''}${cat.breed || ''}${(cat.traits || []).join('')}${(cat.stories || []).join('')}${cat.source || ''}`;
+            if (!text.includes(kw)) return false;
+        }
+        return true;
     });
 }
-
-function getPhotos(cat) {
-    if (!cat) return { urls: [], ids: [], count: 0 };
-    const ids = [];
-    if (Array.isArray(cat.photos) && cat.photos.length) {
-        cat.photos.forEach(p => { if (p) ids.push(p); });
-    } else if (cat.photo) {
-        ids.push(cat.photo);
-    }
-    const urls = ids.map((_, i) =>
-        (cat.photoUrls && cat.photoUrls[i]) || cat.photoUrl || ''
-    );
-    return { urls, ids, count: ids.length };
-}
-
-const $ = (id) => document.getElementById(id);
-const listEl = $('catList');
-const emptyBox = $('emptyBox');
-const errorBox = $('errorBox');
-const errorText = $('errorText');
-const loadingBox = $('loadingBox');
-const searchInput = $('searchInput');
-const filtersEl = $('filters');
-const adminToggle = $('adminToggle');
-const adminBar = $('adminBar');
-const btnAdd = $('btnAdd');
-const detailModal = $('detailModal');
-const modalBody = $('modalBody');
-const modalMask = $('modalMask');
-const passwordModal = $('passwordModal');
-const editModal = $('editModal');
-const editBody = $('editBody');
 
 function renderList(list) {
+    const listEl = document.getElementById('catList');
+    const emptyBox = document.getElementById('emptyBox');
     listEl.innerHTML = '';
     emptyBox.classList.toggle('hidden', list.length > 0);
 
@@ -99,36 +51,30 @@ function renderList(list) {
         const card = document.createElement('div');
         card.className = 'cat-card';
         card.onclick = () => openDetail(cat);
-
-        const photos = getPhotos(cat);
-        const firstUrl = photos.urls[0] || '';
-        const photoCount = photos.count;
+        const photo = cat.photo || 'photos/placeholder.jpg';
+        const isPassed = cat.adoption_status === '已离世';
         card.innerHTML = `
             <div class="cat-photo-wrap">
-                <img class="cat-photo ${cat.adoption_status === '已离世' ? 'passed' : ''}"
-                     src="${escapeHtml(firstUrl)}" alt="${escapeHtml(cat.name)}"
+                <img class="cat-photo ${isPassed ? 'passed' : ''}"
+                     src="${escapeHtml(photo)}" alt="${escapeHtml(cat.name || '')}"
                      onerror="this.style.visibility='hidden'">
-                ${photoCount > 1 ? `<span class="photo-count">${photoCount}</span>` : ''}
             </div>
             <div class="cat-info">
                 <div class="cat-name-row">
-                    <span class="cat-name">${escapeHtml(cat.name)}</span>
-                    <span class="badge ${BADGE_MAP[cat.adoption_status] || 'badge-other'}">${escapeHtml(cat.adoption_status)}</span>
+                    <span class="cat-name">${escapeHtml(cat.name || '')}</span>
+                    <span class="badge ${BADGE_MAP[cat.adoption_status] || 'badge-other'}">${escapeHtml(cat.adoption_status || '')}</span>
                 </div>
-                <div class="cat-title">🎭 ${escapeHtml(cat.title)}</div>
+                <div class="cat-title">🎭 ${escapeHtml(cat.title || '')}</div>
                 <div class="cat-meta">${formatMeta(cat)}</div>
                 <div class="cat-tags">
                     ${(cat.traits || []).slice(0, 3).map(t => `<span class="cat-tag">${escapeHtml(t)}</span>`).join('')}
                 </div>
             </div>
-            ${isAdmin ? `<button class="card-edit" data-id="${escapeHtml(cat._id)}">编辑</button>` : ''}
+            ${isAdmin ? `<button class="card-edit" data-id="${escapeHtml(cat.id)}">编辑</button>` : ''}
         `;
         const editBtn = card.querySelector('.card-edit');
         if (editBtn) {
-            editBtn.onclick = (e) => {
-                e.stopPropagation();
-                openEditForm(cat);
-            };
+            editBtn.onclick = (e) => { e.stopPropagation(); openEdit(cat); };
         }
         listEl.appendChild(card);
     });
@@ -141,72 +87,437 @@ function formatMeta(cat) {
     return parts.join(' · ');
 }
 
-function getFiltered() {
-    const kw = currentKeyword.trim();
-    return cats.filter(cat => {
-        if (currentFilter !== '全部' && cat.adoption_status !== currentFilter) return false;
-        if (kw) {
-            const text = `${cat.name}${cat.title}${cat.breed || ''}${(cat.traits || []).join('')}${(cat.stories || []).join('')}${cat.source || ''}`;
-            if (!text.includes(kw)) return false;
-        }
-        return true;
-    });
-}
-
 function refresh() {
     renderList(getFiltered());
 }
 
-async function loadCats() {
-    loadingBox.classList.remove('hidden');
-    errorBox.classList.add('hidden');
-    try {
-        const result = await callFn('getCatList');
-        cats = result.data || [];
-        refresh();
-    } catch (err) {
-        console.error('加载失败:', err);
-        cats = [];
-        refresh();
-        errorBox.classList.remove('hidden');
-        errorText.textContent = err.message || '数据加载失败';
-    } finally {
-        loadingBox.classList.add('hidden');
+// ===== HTML 转义 =====
+function escapeHtml(s) {
+    return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// ===== 详情弹层 =====
+function openDetail(cat) {
+    const isPassed = cat.adoption_status === '已离世';
+    const photo = cat.photo || 'photos/placeholder.jpg';
+    const content = document.getElementById('modalContent');
+    content.innerHTML = `
+        <button class="modal-close" id="detailClose">✕</button>
+        <div class="detail-hero">
+            <img class="detail-photo ${isPassed ? 'passed' : ''}" src="${escapeHtml(photo)}" alt="${escapeHtml(cat.name || '')}" onerror="this.style.display='none'">
+            <div class="detail-mask"></div>
+            <div class="detail-hero-info">
+                <div class="detail-name-row">
+                    <span class="detail-name">${escapeHtml(cat.name || '')}</span>
+                    <span class="badge ${BADGE_MAP[cat.adoption_status] || 'badge-other'}">${escapeHtml(cat.adoption_status || '')}</span>
+                </div>
+                <div class="detail-title">🎭 ${escapeHtml(cat.title || '')}</div>
+            </div>
+        </div>
+        <div class="detail-card">
+            <div class="detail-section-title">🧬 基本信息</div>
+            ${infoRow('品种/特征', cat.breed || '未知')}
+            ${infoRow('性别', cat.gender || '未知')}
+            ${infoRow('年龄', cat.age || '未知')}
+            ${infoRow('健康状态', cat.health || '待观察')}
+            ${infoRow('绝育情况', cat.neutered ? '<span class="neutered-yes">✅ 已绝育</span>' : '<span class="neutered-no">⚠️ 未绝</span>')}
+        </div>
+        ${cat.traits && cat.traits.length ? `<div class="detail-card">
+            <div class="detail-section-title">🧠 性格标签</div>
+            <div class="detail-tags">${cat.traits.map(t => `<span class="detail-tag">${escapeHtml(t)}</span>`).join('')}</div>
+        </div>` : ''}
+        ${cat.stories && cat.stories.length ? `<div class="detail-card">
+            <div class="detail-section-title">📜 专属事迹</div>
+            ${cat.stories.map(s => `<div class="story-item"><span class="story-dot">🐾</span><span>${escapeHtml(s)}</span></div>`).join('')}
+        </div>` : ''}
+        ${cat.source ? `<div class="detail-source">📢 档案来源:${escapeHtml(cat.source)}</div>` : ''}
+        ${isPassed ? '<div class="memorial">🕊️ 愿它在喵星安息,谢谢它曾陪伴我们的校园时光</div>' : ''}
+    `;
+    document.getElementById('detailModal').classList.remove('hidden');
+    document.getElementById('detailClose').onclick = closeDetail;
+    document.body.style.overflow = 'hidden';
+}
+
+function infoRow(label, content) {
+    return `<div class="detail-info-row"><span class="detail-label">${label}</span><span class="detail-value">${content}</span></div>`;
+}
+
+function closeDetail() {
+    document.getElementById('detailModal').classList.add('hidden');
+    document.body.style.overflow = '';
+}
+
+// ===== 密码弹层 =====
+function openPasswordModal() {
+    document.getElementById('passwordInput').value = '';
+    document.getElementById('passwordError').classList.add('hidden');
+    document.getElementById('passwordModal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    setTimeout(() => document.getElementById('passwordInput').focus(), 100);
+}
+function closePasswordModal() {
+    document.getElementById('passwordModal').classList.add('hidden');
+    document.body.style.overflow = '';
+}
+
+function submitPassword() {
+    const input = document.getElementById('passwordInput').value.trim();
+    if (!input) return;
+    if (input !== CFG.ADMIN_PASSWORD) {
+        const errEl = document.getElementById('passwordError');
+        errEl.textContent = '密码错误';
+        errEl.classList.remove('hidden');
+        return;
+    }
+    if (!CFG.GH_TOKEN) {
+        alert('密码正确!\n\n但当前没有 GitHub Token,无法保存修改到 GitHub。\n\n请在 config.js 中填写 GH_TOKEN,然后重新打开网页。');
+    }
+    isAdmin = true;
+    closePasswordModal();
+    document.getElementById('adminToggle').textContent = '🚪 退出管理';
+    document.getElementById('adminToggle').classList.add('admin-active');
+    refresh();
+}
+
+function exitAdmin() {
+    if (!confirm('退出管理模式?')) return;
+    isAdmin = false;
+    document.getElementById('adminToggle').textContent = '🔑 管理模式';
+    document.getElementById('adminToggle').classList.remove('admin-active');
+    refresh();
+}
+
+// ===== 编辑表单 =====
+let editingCat = null;
+
+function openEdit(cat) {
+    editingCat = cat;
+    const photosArr = cat.photos || (cat.photo ? [cat.photo] : []);
+    const content = document.getElementById('editContent');
+    content.innerHTML = `
+        <button class="modal-close" id="editClose">✕</button>
+        <div style="padding: 20px;">
+            <div class="form-title">✏️ 编辑「${escapeHtml(cat.name)}」</div>
+
+            <div class="form-block">
+                <label class="form-label">猫咪照片 <span class="form-hint">(可上传,会保存到 GitHub)</span></label>
+                <div class="photo-grid" id="photoGrid">
+                    ${photosArr.map((p, i) => `
+                        <div class="photo-grid-item">
+                            <img class="photo-grid-img" src="${escapeHtml(p)}" alt="图${i+1}">
+                        </div>
+                    `).join('')}
+                    <div class="photo-add-btn" id="photoAddBtn">
+                        <span>+</span><span>上传图片</span>
+                        <input type="file" id="photoFile" accept="image/*" multiple style="display:none;">
+                    </div>
+                </div>
+                <div class="form-hint">⚠️ 上传图片会保存到 GitHub 仓库 photos 目录</div>
+            </div>
+
+            <div class="form-row"><label class="form-label">名字 <span class="required">*</span></label><input class="form-input" id="f-name" value="${escapeHtml(cat.name || '')}"></div>
+            <div class="form-row"><label class="form-label">江湖称号</label><input class="form-input" id="f-title" value="${escapeHtml(cat.title || '')}"></div>
+            <div class="form-row"><label class="form-label">品种/特征</label><input class="form-input" id="f-breed" value="${escapeHtml(cat.breed || '')}"></div>
+            <div class="form-row"><label class="form-label">性别</label>
+                <select class="form-select" id="f-gender">
+                    <option value="公" ${cat.gender === '公' ? 'selected' : ''}>公</option>
+                    <option value="母" ${cat.gender === '母' ? 'selected' : ''}>母</option>
+                    <option value="未知" ${!cat.gender || cat.gender === '未知' ? 'selected' : ''}>未知</option>
+                </select>
+            </div>
+            <div class="form-row"><label class="form-label">年龄</label><input class="form-input" id="f-age" value="${escapeHtml(cat.age || '')}"></div>
+            <div class="form-row"><label class="form-label">领养状态</label>
+                <select class="form-select" id="f-status">
+                    ${['待领养', '已领养', '暂不领养', '已离世'].map(s => `<option value="${s}" ${cat.adoption_status === s ? 'selected' : ''}>${s}</option>`).join('')}
+                </select>
+            </div>
+            <div class="form-row"><label class="form-label">健康状态</label><input class="form-input" id="f-health" value="${escapeHtml(cat.health || '')}"></div>
+            <div class="form-row form-row-switch"><label class="form-label">已绝育</label>
+                <label style="display:flex; align-items:center; gap:6px; padding: 6px 0;">
+                    <input type="checkbox" id="f-neutered" ${cat.neutered ? 'checked' : ''}> 是
+                </label>
+            </div>
+            <div class="form-row"><label class="form-label">档案来源</label><input class="form-input" id="f-source" value="${escapeHtml(cat.source || '')}"></div>
+
+            <div class="form-block">
+                <label class="form-label">性格标签 <span class="form-hint">(每行一条)</span></label>
+                <textarea class="form-textarea" id="f-traits" rows="4">${escapeHtml((cat.traits || []).join('\n'))}</textarea>
+            </div>
+            <div class="form-block">
+                <label class="form-label">专属事迹 <span class="form-hint">(每行一条)</span></label>
+                <textarea class="form-textarea" id="f-stories" rows="4">${escapeHtml((cat.stories || []).join('\n'))}</textarea>
+            </div>
+
+            <div class="form-error hidden" id="editError"></div>
+
+            <div class="btn-row">
+                <button class="btn-ghost btn-danger" id="btnDelete">🗑 删除</button>
+                <button class="btn-ghost" id="btnCancel">取消</button>
+                <button class="btn-primary" id="btnSave">💾 保存到 GitHub</button>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('editClose').onclick = closeEdit;
+    document.getElementById('btnCancel').onclick = closeEdit;
+    document.getElementById('btnDelete').onclick = deleteCat;
+    document.getElementById('btnSave').onclick = saveCat;
+    document.getElementById('photoFile').onchange = onPhotoSelected;
+    document.getElementById('editModal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+
+    // 把待上传图片存到 cat 对象上(临时)
+    editingCat._newPhotos = [];
+}
+
+function onPhotoSelected(e) {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    files.forEach(file => {
+        if (!/^image\//.test(file.type)) return alert('只支持图片');
+        if (file.size > 5 * 1024 * 1024) return alert('图片不能超过 5MB');
+        const reader = new FileReader();
+        reader.onload = () => {
+            editingCat._newPhotos = editingCat._newPhotos || [];
+            editingCat._newPhotos.push({
+                name: file.name,
+                contentType: file.type,
+                base64: reader.result.split(',')[1]
+            });
+            // 立即渲染新图片到网格
+            const grid = document.getElementById('photoGrid');
+            const div = document.createElement('div');
+            div.className = 'photo-grid-item';
+            div.innerHTML = `<img class="photo-grid-img" src="${reader.result}" alt="新">`;
+            grid.insertBefore(div, document.getElementById('photoAddBtn'));
+        };
+        reader.readAsDataURL(file);
+    });
+    e.target.value = '';
+}
+
+function closeEdit() {
+    document.getElementById('editModal').classList.add('hidden');
+    document.body.style.overflow = '';
+    editingCat = null;
+}
+
+// ===== GitHub API 保存 =====
+async function getGithubFile() {
+    const r = await fetch(
+        `https://api.github.com/repos/${CFG.GH_OWNER}/${CFG.GH_REPO}/contents/${CFG.GH_FILE_PATH}?ref=${CFG.GH_BRANCH}`,
+        { headers: { Authorization: `Bearer ${CFG.GH_TOKEN}`, Accept: 'application/vnd.github.v3+json' } }
+    );
+    if (!r.ok) throw new Error(`获取文件失败:${r.status}`);
+    return r.json();
+}
+
+async function updateGithubFile(contentBase64, message, sha) {
+    const body = {
+        message,
+        content: contentBase64,
+        branch: CFG.GH_BRANCH,
+        sha
+    };
+    const r = await fetch(
+        `https://api.github.com/repos/${CFG.GH_OWNER}/${CFG.GH_REPO}/contents/${CFG.GH_FILE_PATH}`,
+        {
+            method: 'PUT',
+            headers: {
+                Authorization: `Bearer ${CFG.GH_TOKEN}`,
+                'Content-Type': 'application/json',
+                Accept: 'application/vnd.github.v3+json'
+            },
+            body: JSON.stringify(body)
+        }
+    );
+    if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        throw new Error(`保存失败:${r.status} ${err.message || ''}`);
+    }
+    return r.json();
+}
+
+async function uploadPhotoToGithub(fileName, base64, message, shaMap = {}) {
+    const r = await fetch(
+        `https://api.github.com/repos/${CFG.GH_OWNER}/${CFG.GH_REPO}/contents/${CFG.GH_FILE_PATH_PHOTOS}/${encodeURIComponent(fileName)}`,
+        {
+            method: 'PUT',
+            headers: {
+                Authorization: `Bearer ${CFG.GH_TOKEN}`,
+                'Content-Type': 'application/json',
+                Accept: 'application/vnd.github.v3+json'
+            },
+            body: JSON.stringify({
+                message,
+                content: base64,
+                branch: CFG.GH_BRANCH,
+                ...(shaMap[fileName] ? { sha: shaMap[fileName] } : {})
+            })
+        }
+    );
+    if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        throw new Error(`上传图片 ${fileName} 失败:${r.status} ${err.message || ''}`);
+    }
+    return r.json();
+}
+
+async function deleteGithubFile(filePath, message, sha) {
+    const r = await fetch(
+        `https://api.github.com/repos/${CFG.GH_OWNER}/${CFG.GH_REPO}/contents/${filePath}`,
+        {
+            method: 'DELETE',
+            headers: {
+                Authorization: `Bearer ${CFG.GH_TOKEN}`,
+                'Content-Type': 'application/json',
+                Accept: 'application/vnd.github.v3+json'
+            },
+            body: JSON.stringify({ message, sha, branch: CFG.GH_BRANCH })
+        }
+    );
+    if (!r.ok && r.status !== 404) {
+        const err = await r.json().catch(() => ({}));
+        throw new Error(`删除文件失败:${r.status} ${err.message || ''}`);
     }
 }
 
-function openDetail(cat) {
-    const isPassed = cat.adoption_status === '已离世';
-    const photos = getPhotos(cat);
-    const photoUrls = photos.urls;
-    const photoCount = photos.count;
+async function saveCat() {
+    if (!CFG.GH_TOKEN) return alert('请先在 config.js 中填入 GitHub Token');
 
-    const heroHtml = photoCount > 0
-        ? `<div class="detail-hero">
-                <button class="detail-close" id="detailClose">✕</button>
-                <div class="detail-swiper" id="detailSwiper">
-                    ${photoUrls.map(url => `<img class="detail-photo ${isPassed ? 'passed' : ''}" src="${escapeHtml(url)}" alt="${escapeHtml(cat.name)}">`).join('')}
-                    ${photoCount > 1 ? `<div class="swiper-dots">${photoUrls.map((_, i) => `<span class="swiper-dot ${i === 0 ? 'active' : ''}" data-i="${i}"></span>`).join('')}</div><div class="swiper-counter">1 / ${photoCount}</div>` : ''}
-                </div>
-                <div class="detail-mask"></div>
-                <div class="detail-hero-info">
-                    <div class="detail-name-row">
-                        <span class="detail-name">${escapeHtml(cat.name)}</span>
-                        <span class="badge ${BADGE_MAP[cat.adoption_status] || 'badge-other'}">${escapeHtml(cat.adoption_status)}</span>
-                    </div>
-                    <div class="detail-title">🎭 ${escapeHtml(cat.title)}</div>
-                </div>
-            </div>`
-        : `<div class="detail-hero">
-                <button class="detail-close" id="detailClose">✕</button>
-                <div class="detail-photo placeholder"><div class="placeholder-icon">🐱</div></div>
-                <div class="detail-hero-info">
-                    <div class="detail-name-row">
-                        <span class="detail-name">${escapeHtml(cat.name)}</span>
-                        <span class="badge ${BADGE_MAP[cat.adoption_status] || 'badge-other'}">${escapeHtml(cat.adoption_status)}</span>
-                    </div>
-                    <div class="detail-title">🎭 ${escapeHtml(cat.title)}</div>
-                </div>
-            </div>`;
+    const name = document.getElementById('f-name').value.trim();
+    if (!name) return alert('请填写名字');
+    const errEl = document.getElementById('editError');
+    errEl.classList.add('hidden');
+    errEl.textContent = '';
 
-    modalBody.innerHT
+    // 收集新照片
+    const newPhotos = editingCat._newPhotos || [];
+
+    try {
+        // 1. 上传新照片到 photos 目录
+        const uploadedPhotos = (editingCat.photos || (editingCat.photo ? [editingCat.photo] : []))
+            .slice();
+        for (const photo of newPhotos) {
+            errEl.textContent = `上传图片: ${photo.name}...`;
+            errEl.classList.remove('hidden');
+            const upRes = await uploadPhotoToGithub(
+                `${Date.now()}-${Math.floor(Math.random() * 10000)}-${photo.name.replace(/[^\w.\u4e00-\u9fa5-]/g, '_')}`,
+                photo.base64,
+                `上传 ${name} 的照片`
+            );
+            uploadedPhotos.push(`photos/${upRes.content.name.split('/').pop()}`);
+        }
+
+        // 2. 更新档案数据
+        errEl.textContent = '更新档案...';
+        errEl.classList.remove('hidden');
+        const fileInfo = await getGithubFile();
+        const decoded = decodeURIComponent(escape(atob(fileInfo.content.replace(/\n/g, ''))));
+        const newData = decoded.replace(/window\.CATS_DATA\s*=\s*/, '').replace(/;\s*$/, '').trim();
+        const catsArr = JSON.parse(newData);
+        const idx = catsArr.findIndex(c => c.id === editingCat.id);
+        if (idx < 0) throw new Error('找不到原档案');
+
+        catsArr[idx] = {
+            ...editingCat,
+            name,
+            title: document.getElementById('f-title').value.trim(),
+            breed: document.getElementById('f-breed').value.trim(),
+            gender: document.getElementById('f-gender').value,
+            age: document.getElementById('f-age').value.trim(),
+            adoption_status: document.getElementById('f-status').value,
+            health: document.getElementById('f-health').value.trim(),
+            neutered: document.getElementById('f-neutered').checked,
+            source: document.getElementById('f-source').value.trim(),
+            traits: document.getElementById('f-traits').value.split('\n').map(s => s.trim()).filter(Boolean),
+            stories: document.getElementById('f-stories').value.split('\n').map(s => s.trim()).filter(Boolean),
+            photo: uploadedPhotos[0] || '',
+            photos: uploadedPhotos
+        };
+
+        const newJson = 'window.CATS_DATA = ' + JSON.stringify(catsArr, null, 2) + ';';
+        const encoded = btoa(unescape(encodeURIComponent(newJson)));
+        await updateGithubFile(encoded, `更新 ${name} 的档案`, fileInfo.sha);
+
+        alert(`✅ ${name} 已保存!\n\n1~2 分钟后 GitHub Pages 重建完成,刷新页面即可看到。`);
+        closeEdit();
+        // 更新本地数据
+        cats = catsArr;
+        window.CATS_DATA = catsArr;
+        refresh();
+    } catch (err) {
+        errEl.textContent = err.message || '保存失败';
+        errEl.classList.remove('hidden');
+    }
+}
+
+async function deleteCat() {
+    if (!confirm(`确定删除「${editingCat.name}」的档案?`)) return;
+    if (!CFG.GH_TOKEN) return alert('请先在 config.js 中填入 GitHub Token');
+
+    try {
+        const fileInfo = await getGithubFile();
+        const decoded = decodeURIComponent(escape(atob(fileInfo.content.replace(/\n/g, ''))));
+        const newData = decoded.replace(/window\.CATS_DATA\s*=\s*/, '').replace(/;\s*$/, '').trim();
+        const catsArr = JSON.parse(newData);
+        catsArr = catsArr.filter(c => c.id !== editingCat.id);
+
+        const newJson = 'window.CATS_DATA = ' + JSON.stringify(catsArr, null, 2) + ';';
+        const encoded = btoa(unescape(encodeURIComponent(newJson)));
+        await updateGithubFile(encoded, `删除 ${editingCat.name} 的档案`, fileInfo.sha);
+
+        alert(`✅ ${editingCat.name} 已删除!`);
+        closeEdit();
+        cats = catsArr;
+        window.CATS_DATA = catsArr;
+        refresh();
+    } catch (err) {
+        alert('删除失败:' + (err.message || '未知错误'));
+    }
+}
+
+// ===== 事件绑定 =====
+document.getElementById('adminToggle').addEventListener('click', () => {
+    if (isAdmin) exitAdmin();
+    else openPasswordModal();
+});
+
+document.getElementById('passwordConfirm').addEventListener('click', submitPassword);
+document.getElementById('passwordCancel').addEventListener('click', closePasswordModal);
+document.getElementById('passwordClose').addEventListener('click', closePasswordModal);
+document.getElementById('passwordInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') submitPassword();
+});
+document.getElementById('detailModal').addEventListener('click', (e) => {
+    if (e.target.id === 'detailModal') closeDetail();
+});
+document.getElementById('passwordModal').addEventListener('click', (e) => {
+    if (e.target.id === 'passwordModal') closePasswordModal();
+});
+document.getElementById('editModal').addEventListener('click', (e) => {
+    if (e.target.id === 'editModal') closeEdit();
+});
+
+document.getElementById('filters').addEventListener('click', (e) => {
+    const chip = e.target.closest('.chip');
+    if (!chip) return;
+    currentFilter = chip.dataset.filter;
+    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    refresh();
+});
+
+let searchTimer = null;
+document.getElementById('searchInput').addEventListener('input', (e) => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+        currentKeyword = e.target.value;
+        refresh();
+    }, 200);
+});
+
+// ===== 启动 =====
+load();
