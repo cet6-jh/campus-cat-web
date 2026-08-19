@@ -336,30 +336,38 @@ function encodeBase64(text) {
     return btoa(binStr);
 }
 
-async function updateGithubFile(contentBase64, message, sha) {
-    const body = {
-        message,
-        content: contentBase64,
-        branch: CFG.GH_BRANCH,
-        sha
-    };
-    const r = await fetch(
-        `https://api.github.com/repos/${CFG.GH_OWNER}/${CFG.GH_REPO}/contents/${CFG.GH_FILE_PATH}`,
-        {
-            method: 'PUT',
-            headers: {
-                Authorization: `Bearer ${CFG.GH_TOKEN}`,
-                'Content-Type': 'application/json',
-                Accept: 'application/vnd.github.v3+json'
-            },
-            body: JSON.stringify(body)
-        }
-    );
-    if (!r.ok) {
+async function updateGithubFile(contentBase64, message, sha, retries = 3) {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        const body = {
+            message,
+            content: contentBase64,
+            branch: CFG.GH_BRANCH,
+            sha
+        };
+        const r = await fetch(
+            `https://api.github.com/repos/${CFG.GH_OWNER}/${CFG.GH_REPO}/contents/${CFG.GH_FILE_PATH}`,
+            {
+                method: 'PUT',
+                headers: {
+                    Authorization: `Bearer ${CFG.GH_TOKEN}`,
+                    'Content-Type': 'application/json',
+                    Accept: 'application/vnd.github.v3+json'
+                },
+                body: JSON.stringify(body)
+            }
+        );
+        if (r.ok) return r.json();
+
+        // 409 冲突:取响应中的最新 sha 重试
         const err = await r.json().catch(() => ({}));
+        if (r.status === 409 && err && err.document && err.document.sha) {
+            console.warn(`SHA 冲突,自动用最新 sha 重试(${attempt}/${retries})`);
+            sha = err.document.sha;
+            continue;
+        }
         throw new Error(`保存失败:${r.status} ${err.message || ''}`);
     }
-    return r.json();
+    throw new Error('保存失败:多次 SHA 冲突');
 }
 
 async function uploadPhotoToGithub(fileName, base64, message, shaMap = {}) {
@@ -433,7 +441,7 @@ async function saveCat() {
             uploadedPhotos.push(`photos/${upRes.content.name.split('/').pop()}`);
         }
 
-        // 2. 更新档案数据
+        // 2. 更新档案数据(再次获取最新 sha,避免上传照片导致 sha 变化)
         errEl.textContent = '更新档案...';
         errEl.classList.remove('hidden');
         const fileInfo = await getGithubFile();
