@@ -317,6 +317,25 @@ async function getGithubFile() {
     return r.json();
 }
 
+/** 解码 GitHub base64 文本(支持中文) */
+function decodeBase64(b64) {
+    // 去掉换行符,补齐 padding
+    b64 = b64.replace(/\n/g, '');
+    const binStr = atob(b64);
+    // 用 TextDecoder 正确解码为 UTF-8(中文不会乱码)
+    const bytes = new Uint8Array(binStr.length);
+    for (let i = 0; i < binStr.length; i++) bytes[i] = binStr.charCodeAt(i);
+    return new TextDecoder('utf-8').decode(bytes);
+}
+
+/** 编码 UTF-8 文本为 GitHub base64 */
+function encodeBase64(text) {
+    const bytes = new TextEncoder().encode(text);
+    let binStr = '';
+    for (let i = 0; i < bytes.length; i++) binStr += String.fromCharCode(bytes[i]);
+    return btoa(binStr);
+}
+
 async function updateGithubFile(contentBase64, message, sha) {
     const body = {
         message,
@@ -418,7 +437,7 @@ async function saveCat() {
         errEl.textContent = '更新档案...';
         errEl.classList.remove('hidden');
         const fileInfo = await getGithubFile();
-        const decoded = decodeURIComponent(escape(atob(fileInfo.content.replace(/\n/g, ''))));
+        const decoded = decodeBase64(fileInfo.content);
         const newData = decoded.replace(/window\.CATS_DATA\s*=\s*/, '').replace(/;\s*$/, '').trim();
         const catsArr = JSON.parse(newData);
         const idx = catsArr.findIndex(c => c.id === editingCat.id);
@@ -442,7 +461,7 @@ async function saveCat() {
         };
 
         const newJson = 'window.CATS_DATA = ' + JSON.stringify(catsArr, null, 2) + ';';
-        const encoded = btoa(unescape(encodeURIComponent(newJson)));
+        const encoded = encodeBase64(newJson);
         await updateGithubFile(encoded, `更新 ${name} 的档案`, fileInfo.sha);
 
         alert(`✅ ${name} 已保存!\n\n1~2 分钟后 GitHub Pages 重建完成,刷新页面即可看到。`);
@@ -459,17 +478,17 @@ async function saveCat() {
 
 async function deleteCat() {
     if (!confirm(`确定删除「${editingCat.name}」的档案?`)) return;
-    if (!CFG.GH_TOKEN) return alert('请先在 config.js 中填入 GitHub Token');
+    if (!CFG.GH_TOKEN) return alert('请先在浏览器 Console 跑: localStorage.setItem("gh_token", "你的GitHub PAT")');
 
     try {
         const fileInfo = await getGithubFile();
-        const decoded = decodeURIComponent(escape(atob(fileInfo.content.replace(/\n/g, ''))));
+        const decoded = decodeBase64(fileInfo.content);
         const newData = decoded.replace(/window\.CATS_DATA\s*=\s*/, '').replace(/;\s*$/, '').trim();
-        const catsArr = JSON.parse(newData);
+        let catsArr = JSON.parse(newData);
         catsArr = catsArr.filter(c => c.id !== editingCat.id);
 
         const newJson = 'window.CATS_DATA = ' + JSON.stringify(catsArr, null, 2) + ';';
-        const encoded = btoa(unescape(encodeURIComponent(newJson)));
+        const encoded = encodeBase64(newJson);
         await updateGithubFile(encoded, `删除 ${editingCat.name} 的档案`, fileInfo.sha);
 
         alert(`✅ ${editingCat.name} 已删除!`);
