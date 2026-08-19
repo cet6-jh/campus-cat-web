@@ -1,0 +1,1633 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="description" content="校园猫猫档案 - 全校猫咪的户口本,认识每一只校园猫咪">
+    <title>🐾 校园猫猫档案</title>
+    <style>/* styles.css —— 校园猫猫档案网页版样式(暖橙主题) */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+:root {
+    --primary: #FF9F43;
+    --bg: #FFF8F0;
+    --text: #4A3B2A;
+    --text-sub: #A08D74;
+    --text-light: #B8A890;
+    --card: #FFFFFF;
+    --green: #4CAF7D;
+    --gray: #9E9E9E;
+    --blue: #8E9BC4;
+    --danger: #D9534F;
+}
+
+html { font-size: 16px; }
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB",
+        "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    max-width: 640px;
+    margin: 0 auto;
+    min-height: 100vh;
+    padding-bottom: 80px;
+}
+
+img { display: block; max-width: 100%; }
+
+.header {
+    padding: 28px 20px 16px;
+    text-align: center;
+    position: relative;
+}
+.header-title {
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--text);
+}
+.header-sub {
+    margin-top: 6px;
+    font-size: 14px;
+    color: var(--text-light);
+}
+
+.admin-toggle {
+    margin-top: 14px;
+    padding: 8px 22px;
+    border-radius: 20px;
+    border: 1.5px solid var(--primary);
+    background: #fff;
+    color: var(--primary);
+    font-size: 14px;
+    cursor: pointer;
+}
+.admin-toggle.admin-active {
+    background: var(--text);
+    border-color: var(--text);
+    color: #fff;
+}
+.admin-add-btn {
+    margin-top: 10px;
+    padding: 8px 22px;
+    border-radius: 20px;
+    border: 1.5px solid var(--green);
+    background: #fff;
+    color: var(--green);
+    font-size: 14px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.search-box { padding: 0 16px 14px; }
+.search-input {
+    width: 100%;
+    padding: 12px 18px;
+    font-size: 15px;
+    border: none;
+    border-radius: 24px;
+    background: var(--card);
+    box-shadow: 0 3px 12px rgba(74, 59, 42, 0.07);
+    outline: none;
+    color: var(--text);
+}
+
+.filters {
+    display: flex;
+    gap: 10px;
+    padding: 0 16px 16px;
+    flex-wrap: wrap;
+}
+.chip {
+    padding: 7px 18px;
+    border-radius: 20px;
+    border: 1px solid #F0E4D2;
+    background: var(--card);
+    color: #8A7760;
+    font-size: 14px;
+    cursor: pointer;
+}
+.chip.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+    font-weight: 600;
+}
+
+.list {
+    padding: 0 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+.cat-card {
+    display: flex;
+    padding: 14px;
+    background: var(--card);
+    border-radius: 16px;
+    box-shadow: 0 4px 16px rgba(74, 59, 42, 0.06);
+    cursor: pointer;
+    position: relative;
+}
+.cat-card:active { transform: scale(0.98); }
+.cat-photo-wrap {
+    width: 100px;
+    height: 100px;
+    flex-shrink: 0;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #F5EDDF;
+}
+.cat-photo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.cat-photo.passed { filter: grayscale(100%); opacity: 0.75; }
+.cat-info {
+    flex: 1;
+    min-width: 0;
+    margin-left: 14px;
+    display: flex;
+    flex-direction: column;
+}
+.cat-name-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+.cat-name {
+    font-size: 17px;
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.badge {
+    flex-shrink: 0;
+    font-size: 12px;
+    color: #fff;
+    padding: 2px 10px;
+    border-radius: 12px;
+}
+.badge-adoptable { background: var(--primary); }
+.badge-adopted { background: var(--green); }
+.badge-passed { background: var(--gray); }
+.badge-other { background: var(--blue); }
+.cat-title {
+    margin-top: 2px;
+    font-size: 13px;
+    color: var(--primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.cat-meta {
+    margin-top: 2px;
+    font-size: 12px;
+    color: var(--text-sub);
+}
+.cat-tags {
+    margin-top: auto;
+    padding-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.cat-tag {
+    font-size: 11px;
+    color: #8A7760;
+    background: #FBF3E6;
+    padding: 2px 8px;
+    border-radius: 10px;
+    max-width: 90px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.card-edit {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    padding: 4px 12px;
+    background: rgba(255, 159, 67, 0.95);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.empty {
+    padding: 60px 20px;
+    text-align: center;
+    color: var(--text-light);
+}
+.empty-icon { font-size: 50px; margin-bottom: 12px; }
+
+.loading, .error-box {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-light);
+    font-size: 14px;
+}
+.error-box { color: var(--danger); }
+
+.modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 100;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+}
+.modal-narrow { align-items: center; }
+.modal-content {
+    position: relative;
+    width: 100%;
+    max-width: 640px;
+    max-height: 90vh;
+    overflow-y: auto;
+    background: var(--bg);
+    border-radius: 20px 20px 0 0;
+    animation: slideUp 0.25s ease-out;
+}
+.modal-narrow .modal-content {
+    max-width: 480px;
+    border-radius: 20px;
+    margin: 0 16px;
+    max-height: none;
+}
+@keyframes slideUp {
+    from { transform: translateY(40px); opacity: 0.6; }
+    to { transform: translateY(0); opacity: 1; }
+}
+.modal-close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.45);
+    color: #fff;
+    border: none;
+    font-size: 18px;
+    line-height: 32px;
+    text-align: center;
+    cursor: pointer;
+    z-index: 5;
+}
+
+.detail-hero {
+    position: relative;
+    height: 320px;
+    overflow: hidden;
+    background: #F5EDDF;
+}
+.detail-photo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.detail-photo.passed { filter: grayscale(100%); opacity: 0.7; }
+.detail-photo.placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 100px;
+    background: linear-gradient(135deg, #FFE9CF 0%, #FFC98F 100%);
+    color: rgba(255, 255, 255, 0.5);
+}
+.detail-mask {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 120px;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.55));
+}
+.detail-hero-info {
+    position: absolute;
+    left: 20px;
+    right: 20px;
+    bottom: 16px;
+    color: #fff;
+}
+.detail-name-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.detail-name {
+    font-size: 26px;
+    font-weight: 800;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+.detail-title {
+    margin-top: 4px;
+    font-size: 15px;
+    color: #FFE9CF;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+.detail-card {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 16px 18px;
+    margin: 14px 16px 0;
+    box-shadow: 0 4px 16px rgba(74, 59, 42, 0.05);
+}
+.detail-section-title {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+.detail-info-row {
+    display: flex;
+    padding: 7px 0;
+    border-bottom: 1px dashed #F3E9D8;
+    font-size: 14px;
+}
+.detail-info-row:last-child { border-bottom: none; }
+.detail-label { width: 96px; color: var(--text-sub); flex-shrink: 0; }
+.detail-value { flex: 1; }
+.detail-value.neutered-yes { color: var(--green); font-weight: 600; }
+.detail-value.neutered-no { color: #E5734F; font-weight: 600; }
+
+.detail-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.detail-tag {
+    background: #FFF1DC;
+    color: #C97B2D;
+    font-size: 13px;
+    padding: 5px 14px;
+    border-radius: 16px;
+}
+
+.story-item {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+.story-dot { margin-right: 8px; flex-shrink: 0; }
+
+.detail-source {
+    margin: 12px 16px 0;
+    font-size: 12px;
+    color: var(--text-light);
+}
+.memorial {
+    margin: 14px 16px;
+    padding: 14px;
+    background: #F3F0EB;
+    border-radius: 12px;
+    text-align: center;
+    color: #9A8F80;
+    font-size: 13px;
+}
+
+.form-card {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 20px;
+}
+.form-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 14px;
+}
+.form-tip {
+    font-size: 13px;
+    color: var(--text-sub);
+    margin-bottom: 16px;
+}
+.form-error {
+    color: var(--danger);
+    font-size: 13px;
+    margin-top: 10px;
+    padding: 10px;
+    background: #FFF7F7;
+    border-radius: 8px;
+}
+.form-row {
+    display: flex;
+    align-items: center;
+    min-height: 50px;
+    border-bottom: 1px dashed #F3E9D8;
+}
+.form-row:last-child { border-bottom: none; }
+.form-row-switch { justify-content: space-between; }
+.form-label {
+    width: 96px;
+    color: var(--text-sub);
+    font-size: 14px;
+    flex-shrink: 0;
+}
+.form-input, .form-select, .form-textarea {
+    flex: 1;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 14px;
+    color: var(--text);
+    background: transparent;
+    font-family: inherit;
+    outline: none;
+    min-width: 0;
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+    border-color: var(--primary);
+    background: #FFFCF7;
+}
+.form-textarea {
+    width: 100%;
+    margin-top: 6px;
+    min-height: 80px;
+    resize: vertical;
+    box-sizing: border-box;
+}
+.form-block {
+    padding: 12px 0;
+    border-bottom: 1px dashed #F3E9D8;
+}
+.form-block:last-child { border-bottom: none; }
+.required { color: var(--danger); }
+.form-hint { font-size: 12px; color: var(--text-light); }
+
+.photo-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 12px;
+}
+.photo-grid-item {
+    position: relative;
+    aspect-ratio: 1/1;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #F5EDDF;
+}
+.photo-grid-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.photo-grid-del {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    border: none;
+    font-size: 14px;
+    line-height: 26px;
+    text-align: center;
+    cursor: pointer;
+}
+.photo-add-btn {
+    aspect-ratio: 1/1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 2px dashed #E3D3B8;
+    border-radius: 12px;
+    background: #FFFCF7;
+    color: var(--text-light);
+    cursor: pointer;
+    font-size: 13px;
+}
+.photo-add-btn span:first-child {
+    font-size: 36px;
+    line-height: 1;
+}
+
+.btn-row {
+    display: flex;
+    gap: 12px;
+    margin-top: 18px;
+    justify-content: flex-end;
+}
+.btn-primary {
+    padding: 10px 24px;
+    border: none;
+    border-radius: 22px;
+    background: var(--primary);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-ghost {
+    padding: 10px 20px;
+    border-radius: 22px;
+    border: 1.5px solid #E3D3B8;
+    background: #fff;
+    color: #8A7760;
+    font-size: 14px;
+    cursor: pointer;
+}
+.btn-danger {
+    border-color: #F5C6C3;
+    color: var(--danger);
+    background: #FFF7F6;
+}
+
+.footer {
+    margin-top: 40px;
+    padding: 20px;
+    text-align: center;
+    color: var(--text-light);
+    font-size: 12px;
+}
+.footer p + p { margin-top: 4px; }
+
+.hidden { display: none !important; }</style>
+</head>
+<body>
+
+    <header class="header">
+        <h1 class="header-title">🐾 校园猫猫档案</h1>
+        <p class="header-sub">全校猫咪的「户口本」,一起来认识它们吧</p>
+        <button class="admin-toggle" id="adminToggle">🔑 管理模式</button>
+        <button class="admin-add-btn hidden" id="adminAddBtn">➕ 新增猫咪</button>
+    </header>
+
+    <div class="search-box">
+        <input id="searchInput" class="search-input" type="search" placeholder="🔍 搜一搜猫猫名字…" autocomplete="off">
+    </div>
+
+    <nav class="filters" id="filters">
+        <button class="chip active" data-filter="全部">全部</button>
+        <button class="chip" data-filter="待领养">待领养</button>
+        <button class="chip" data-filter="已领养">已领养</button>
+        <button class="chip" data-filter="已离世">已离世</button>
+    </nav>
+
+    <div class="loading" id="loadingBox">🐾 正在加载档案…</div>
+    <div class="error-box hidden" id="errorBox">数据加载失败</div>
+
+    <main class="list" id="catList"></main>
+
+    <div class="empty hidden" id="emptyBox">
+        <div class="empty-icon">🐱</div>
+        <p>没有找到符合条件的猫猫</p>
+    </div>
+
+    <footer class="footer">
+        <p>🔒 为保护猫咪安全,档案不含具体出没位置</p>
+        <p>🐾 校园猫猫档案 · 分享让更多人认识它们</p>
+    </footer>
+
+    <!-- 详情弹层 -->
+    <div class="modal hidden" id="detailModal">
+        <div class="modal-content" id="modalContent"></div>
+    </div>
+
+    <!-- 密码弹层 -->
+    <div class="modal modal-narrow hidden" id="passwordModal">
+        <div class="modal-content">
+            <button class="modal-close" id="passwordClose">✕</button>
+            <div style="padding: 20px;">
+                <div class="form-title">🔑 管理模式</div>
+                <p class="form-tip">输入管理员密码后可新增、编辑、删除猫猫档案</p>
+                <input id="passwordInput" class="form-input" type="password" placeholder="管理员密码" autocomplete="off" style="border:1px solid #E3D3B8;">
+                <div class="form-error hidden" id="passwordError"></div>
+                <div class="btn-row" style="margin-top: 16px;">
+                    <button class="btn-ghost" id="passwordCancel">取消</button>
+                    <button class="btn-primary" id="passwordConfirm">进入管理</button>
+                </div>
+                <div style="margin-top: 16px; padding-top: 16px; border-top: 1px dashed #F3E9D8; font-size: 12px; color: #B8A890; line-height: 1.6;">
+                    ⚙️ 首次使用需在 <code>config.js</code> 中填入 GitHub Token。<br>
+                    Token 权限:Contents (Read and Write)。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 编辑弹层 -->
+    <div class="modal hidden" id="editModal">
+        <div class="modal-content" id="editContent"></div>
+    </div>
+
+    <script>// config.js —— 网页版配置
+// ---------------------------------------------------------------
+// ⚠️ 重要: 这个文件保存了管理员密码和 GitHub PAT
+// 1. 修改密码: 修改 ADMIN_PASSWORD 字段
+// 2. 填入 GitHub Token: 修改 GH_TOKEN 字段
+// ---------------------------------------------------------------
+
+// 管理员密码(网页端登录管理模式的密码)
+const ADMIN_PASSWORD = 'gnnu9797';
+
+// GitHub 仓库配置
+const GH_OWNER = 'cet6-jh';           // 你的 GitHub 用户名
+const GH_REPO = 'campus-cat-web';     // 仓库名
+const GH_BRANCH = 'main';;            // 分支名
+const GH_FILE_PATH = 'data.js';        // 数据文件路径(在仓库中的路径)
+const GH_FILE_PATH_PHOTOS = 'photos';  // 图片文件夹路径
+// 运行时优先从 localStorage.gh_token 读取(浏览器本地,不保存到 GitHub)
+// 这样配置文件中就不会有 token,GitHub 自动拦截也不会误报
+const GH_TOKEN = localStorage.getItem('gh_token') || '';   // ★ 在浏览器 Console 执行: localStorage.setItem('gh_token', '你的GitHub PAT')
+
+// 导出(全局变量,方便 app.js 使用)
+window.APP_CONFIG = {
+    ADMIN_PASSWORD,
+    GH_OWNER,
+    GH_REPO,
+    GH_BRANCH,
+    GH_FILE_PATH,
+    GH_FILE_PATH_PHOTOS,
+    GH_TOKEN
+};</script>
+    <script>window.CATS_DATA = [
+  {
+    "id": "cat_90af3a",
+    "name": "龙龙",
+    "title": "待领养的橘座",
+    "photo": "photos/龙龙.jpg",
+    "breed": "全橘、头小身子大",
+    "gender": "公",
+    "age": "三岁",
+    "traits": [
+      "性子好",
+      "很黏人",
+      "叫声夹夹的",
+      "胃口好不挑食",
+      "摸烦了会打人"
+    ],
+    "adoption_status": "待领养",
+    "health": "健康",
+    "neutered": true,
+    "stories": [
+      "与朵朵是亲兄妹",
+      "朵朵去年和领养人一起毕业了",
+      "偶尔需要控制体重"
+    ],
+    "source": "小红书 @赣范喵喵",
+    "created_at": "2026-08-12 17:08",
+    "_newPhotos": [],
+    "photos": [
+      "photos/龙龙.jpg"
+    ]
+  },
+  {
+    "id": "cat_acb9a2",
+    "name": "年年",
+    "title": "黏人小甜心",
+    "photo": "photos/年年.jpg",
+    "breed": "全橘虎斑、白下巴、眼睛大",
+    "gender": "母",
+    "age": "未知",
+    "traits": [
+      "黏人精",
+      "叫声好听",
+      "会自照顾",
+      "爱跟人后面要饭",
+      "性格特别好"
+    ],
+    "adoption_status": "待领养",
+    "health": "健康",
+    "neutered": true,
+    "stories": [
+      "和花花是好姐妹",
+      "和龙龙偶尔吵架",
+      "现在跟贝果糯糯是好朋友",
+      "很快就会找老师喂食",
+      "毕业季希望被领养"
+    ],
+    "source": "小红书 @赣范喵喵",
+    "created_at": "2026-08-12 17:16"
+  },
+  {
+    "id": "cat_1a7d25",
+    "name": "躲躲",
+    "title": "树丛蹲蹲大师",
+    "photo": "photos/躲躲.jpg",
+    "breed": "灰棕狸花虎斑、圆睁冷脸",
+    "gender": "公",
+    "age": "2-3 岁",
+    "traits": [
+      "胆小",
+      "爱躲",
+      "平时很乖",
+      "相处久了能贴贴",
+      "脸冷心甜"
+    ],
+    "adoption_status": "待领养",
+    "health": "健康",
+    "neutered": true,
+    "stories": [
+      "阿豹的好朋友",
+      "需要耐心投喂",
+      "冷脸萌",
+      "贴贴要靠相处"
+    ],
+    "source": "小红书 @赣范喵喵",
+    "created_at": "2026-08-12 17:20"
+  },
+  {
+    "id": "cat_31fe25",
+    "name": "挖挖",
+    "title": "老学长",
+    "photo": "photos/挖挖.jpg",
+    "breed": "全橘虎斑、圆脸、白胸脯",
+    "gender": "未知",
+    "age": "年纪挺大，多年校园猫",
+    "traits": [
+      "乖巧",
+      "偶尔凶闹脾气",
+      "讨人喜欢",
+      "很多同学认识"
+    ],
+    "adoption_status": "已领养",
+    "health": "体重9斤+、口炎复发已在控",
+    "neutered": true,
+    "stories": [
+      "在学校生活了好多年",
+      "口炎复发已在可控范围",
+      "领养人是善良温柔的毕业生(考研结束接手)",
+      "现在家中安逸养老",
+      "不用担惊受怕到处躲藏"
+    ],
+    "source": "小红书 @赣范喵喵",
+    "created_at": "2026-08-12 17:24"
+  },
+  {
+    "id": "cat_ed811e",
+    "name": "皮皮",
+    "title": "图书馆馆长",
+    "photo": "photos/皮皮.jpg",
+    "breed": "虎斑、绿眼睛、表情呆萌",
+    "gender": "未知",
+    "age": "未知",
+    "traits": [
+      "见证过许多同学的勤奋刻苦",
+      "许久未见",
+      "傲娇"
+    ],
+    "adoption_status": "已领养",
+    "health": "待观察",
+    "neutered": true,
+    "stories": [
+      "赣师大图书馆馆长",
+      "两个多月没见",
+      "三月被领养人接回家",
+      "领养人是今年的毕业生"
+    ],
+    "source": "小红书 @赣范喵喵",
+    "created_at": "2026-08-12 17:33"
+  },
+  {
+    "id": "cat_0e3028",
+    "name": "呱呱",
+    "title": "白白胖胖小冬瓜",
+    "photo": "photos/呱呱.jpg",
+    "breed": "白橘、嘴巴变香了",
+    "gender": "未知",
+    "age": "未知",
+    "traits": [
+      "嘴巴变香了",
+      "长胖了",
+      "白白胖胖",
+      "记住领养人座位"
+    ],
+    "adoption_status": "已领养",
+    "health": "待观察",
+    "neutered": true,
+    "stories": [
+      "经常在图书馆与领养人相遇",
+      "冬天附近有狗群",
+      "考完试被领回家",
+      "领养人是今年的毕业生",
+      "坚持喂药治口炎"
+    ],
+    "source": "小红书 @赣范喵喵",
+    "created_at": "2026-08-12 17:33"
+  },
+  {
+    "id": "cat_152579",
+    "name": "花花",
+    "title": "三餐四季的小宝贝",
+    "photo": "photos/花花.jpg",
+    "breed": "白灰棕虎斑、眼神温柔",
+    "gender": "未知",
+    "age": "未知",
+    "traits": [
+      "过得很幸福",
+      "不再淋雨",
+      "与人一起三餐四季"
+    ],
+    "adoption_status": "已领养",
+    "health": "待观察",
+    "neutered": true,
+    "stories": [
+      "24年收养了一个人",
+      "有遮风挡雨的小家",
+      "领养人是今年的毕业生",
+      "希望校猫朋友们都能找到家",
+      "年年是好姐妹"
+    ],
+    "source": "小红书 @赣范喵喵",
+    "created_at": "2026-08-12 17:33"
+  },
+  {
+    "id": "cat_ecd080",
+    "name": "白鼻",
+    "title": "校园男神",
+    "photo": "photos/白鼻.jpg",
+    "breed": "橘色虎斑、鼻子上有白斑(名字由来)",
+    "gender": "公",
+    "age": "7岁以上",
+    "traits": [
+      "脾气乖",
+      "人见人爱",
+      "花见花开",
+      "引得同学尖叫",
+      "超萌"
+    ],
+    "adoption_status": "已领养",
+    "health": "待观察",
+    "neutered": true,
+    "stories": [
+      "和蓬蓬组CP叫蓬荜生辉",
+      "白鼻胖蓬蓬瘦",
+      "领养人大一就认识白鼻",
+      "毕业季被软萌性格圈粉后领回家",
+      "以前常和大橘吵架"
+    ],
+    "source": "小红书 @赣范喵喵",
+    "created_at": "2026-08-12 17:37"
+  },
+  {
+    "id": "cat_3bc030",
+    "name": "话唠",
+    "title": "百搭话唠专员",
+    "photo": "photos/话唠.jpg",
+    "breed": "虎斑、表情呆萌",
+    "gender": "公",
+    "age": "五岁",
+    "traits": [
+      "嘴碎",
+      "爱叫",
+      "叫声特萌",
+      "非常热情",
+      "黏人"
+    ],
+    "adoption_status": "已离世",
+    "health": "已离世(被狗咬死)",
+    "neutered": true,
+    "stories": [
+      "爱好喵喵叫",
+      "它帮百猫安家计划NO.70",
+      "首张领养名片展示",
+      "🕊️ 已离世：被被雨咬死，愿它在喵星安息"
+    ],
+    "source": "小红书 @赣范喵喵",
+    "created_at": "2026-08-12 17:40"
+  },
+  {
+    "id": "cat_203ddb",
+    "name": "麻薯",
+    "title": "两岁半的橘雀",
+    "photo": "photos/麻薯.jpg",
+    "breed": "橘雀、花纹特别",
+    "gender": "母",
+    "age": "两岁半",
+    "traits": [
+      "叫声非常软萌",
+      "年纪小爱黏人",
+      "爱喵喵叫"
+    ],
+    "adoption_status": "待领养",
+    "health": "已绝育，健康",
+    "neutered": true,
+    "stories": [
+      "它帮百猫安家计划NO.71"
+    ],
+    "source": "小红书 @赣范喵喵",
+    "created_at": "2026-08-12 17:44"
+  },
+  {
+    "id": "cat_e8fd3f",
+    "name": "三毛",
+    "title": "撒娇讨饭小少爷",
+    "photo": "photos/三毛.jpg",
+    "breed": "橘猫、面对镜头爱摆pose",
+    "gender": "公",
+    "age": "三岁半",
+    "traits": [
+      "爱遛弯",
+      "爱撒娇讨饭",
+      "喜欢人手喂"
+    ],
+    "adoption_status": "待领养",
+    "health": "已绝育，健康",
+    "neutered": true,
+    "stories": [
+      "它帮百猫安家计划NO.75",
+      "爱好吃湿粮"
+    ],
+    "source": "小红书 @赣范喵喵",
+    "created_at": "2026-08-12 17:44"
+  },
+  {
+    "id": "cat_68ddae",
+    "name": "汤圆",
+    "title": "下水道里的冒险家",
+    "photo": "photos/汤圆.jpg",
+    "breed": "狸花虎斑、绿眼",
+    "gender": "母",
+    "age": "两岁半",
+    "traits": [
+      "灵活活泼",
+      "亲人",
+      "叫声啊哦啊哦"
+    ],
+    "adoption_status": "待领养",
+    "health": "已绝育，健康",
+    "neutered": true,
+    "stories": [
+      "它帮百猫安家计划NO.76",
+      "喜欢从下水道钻到楼上",
+      "爱好抓老鼠"
+    ],
+    "source": "小红书 @赣范喵喵",
+    "created_at": "2026-08-12 17:44"
+  },
+  {
+    "id": "cat_6b1822",
+    "name": "推推",
+    "title": "宝石眼推彦祖",
+    "photo": "photos/推推.jpg",
+    "breed": "绿眼睛像宝石、虎斑",
+    "gender": "公",
+    "age": "六岁",
+    "traits": [
+      "性格好",
+      "人见人爱花见花开",
+      "绿色眼睛特别好看"
+    ],
+    "adoption_status": "已领养",
+    "health": "已绝育，健康",
+    "neutered": true,
+    "stories": [
+      "它帮百猫安家计划NO.77",
+      "爱好吃鸡胸肉",
+      "已被领养"
+    ],
+    "source": "小红书 @赣范喵喵",
+    "created_at": "2026-08-12 17:44"
+  },
+  {
+    "id": "cat_261b7b",
+    "name": "蓬蓬",
+    "title": "山羊胡子的小元气",
+    "photo": "photos/蓬蓬.jpg",
+    "breed": "橘虎斑、有标志性山羊胡子",
+    "gender": "公",
+    "age": "三岁",
+    "traits": [
+      "元气满满",
+      "一点点胆小",
+      "爱贴贴",
+      "被鸡胸肉狠狠拿捏",
+      "急寻长期饭票"
+    ],
+    "adoption_status": "待领养",
+    "health": "已绝育，健康",
+    "neutered": true,
+    "stories": [
+      "与白鼻组CP叫蓬荜生辉",
+      "白鼻胖蓬蓬瘦",
+      "急寻长期饭票加专属怀抱"
+    ],
+    "source": "小红书 @赣范喵喵",
+    "created_at": "2026-08-12 17:53"
+  }
+];</script>
+    <script>// app.js —— 校园猫猫档案(在线编辑版)
+// 数据从 data.js 加载,通过 GitHub API 实现网页编辑
+
+const CFG = window.APP_CONFIG;
+
+// 优先从 localStorage 读取 GitHub Token(更安全,不暴露在 GitHub 上)
+CFG.GH_TOKEN = localStorage.getItem('gh_token') || CFG.GH_TOKEN || '';
+let cats = [];
+let currentFilter = '全部';
+let currentKeyword = '';
+let isAdmin = false;
+
+// ===== 状态徽章 =====
+const BADGE_MAP = {
+    '待领养': 'badge-adoptable',
+    '已领养': 'badge-adopted',
+    '已离世': 'badge-passed',
+    '暂不领养': 'badge-other'
+};
+
+// ===== 加载数据 =====
+function load() {
+    try {
+        cats = window.CATS_DATA || [];
+        renderList(getFiltered());
+    } catch (err) {
+        document.getElementById('errorBox').classList.remove('hidden');
+        document.getElementById('errorBox').textContent = '数据加载失败:' + err.message;
+    } finally {
+        document.getElementById('loadingBox').classList.add('hidden');
+    }
+}
+
+// ===== 列表渲染 =====
+function getFiltered() {
+    const kw = currentKeyword.trim();
+    return cats.filter(cat => {
+        if (currentFilter !== '全部' && cat.adoption_status !== currentFilter) return false;
+        if (kw) {
+            const text = `${cat.name || ''}${cat.title || ''}${cat.breed || ''}${(cat.traits || []).join('')}${(cat.stories || []).join('')}${cat.source || ''}`;
+            if (!text.includes(kw)) return false;
+        }
+        return true;
+    });
+}
+
+function renderList(list) {
+    const listEl = document.getElementById('catList');
+    const emptyBox = document.getElementById('emptyBox');
+    listEl.innerHTML = '';
+    emptyBox.classList.toggle('hidden', list.length > 0);
+
+    list.forEach(cat => {
+        const card = document.createElement('div');
+        card.className = 'cat-card';
+        card.onclick = () => openDetail(cat);
+        const photo = cat.photo || 'photos/placeholder.jpg';
+        const isPassed = cat.adoption_status === '已离世';
+        card.innerHTML = `
+            <div class="cat-photo-wrap">
+                <img class="cat-photo ${isPassed ? 'passed' : ''}"
+                     src="${escapeHtml(photo)}" alt="${escapeHtml(cat.name || '')}"
+                     onerror="this.style.visibility='hidden'">
+            </div>
+            <div class="cat-info">
+                <div class="cat-name-row">
+                    <span class="cat-name">${escapeHtml(cat.name || '')}</span>
+                    <span class="badge ${BADGE_MAP[cat.adoption_status] || 'badge-other'}">${escapeHtml(cat.adoption_status || '')}</span>
+                </div>
+                <div class="cat-title">🎭 ${escapeHtml(cat.title || '')}</div>
+                <div class="cat-meta">${formatMeta(cat)}</div>
+                <div class="cat-tags">
+                    ${(cat.traits || []).slice(0, 3).map(t => `<span class="cat-tag">${escapeHtml(t)}</span>`).join('')}
+                </div>
+            </div>
+            ${isAdmin ? `<button class="card-edit" data-id="${escapeHtml(cat.id)}">编辑</button>` : ''}
+        `;
+        const editBtn = card.querySelector('.card-edit');
+        if (editBtn) {
+            editBtn.onclick = (e) => { e.stopPropagation(); openEdit(cat); };
+        }
+        listEl.appendChild(card);
+    });
+}
+
+function formatMeta(cat) {
+    const parts = [];
+    if (cat.gender && cat.gender !== '未知') parts.push(`⚧ ${cat.gender}`);
+    if (cat.age && cat.age !== '未知') parts.push(cat.age);
+    return parts.join(' · ');
+}
+
+function refresh() {
+    renderList(getFiltered());
+}
+
+// ===== HTML 转义 =====
+function escapeHtml(s) {
+    return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// ===== 详情弹层 =====
+function openDetail(cat) {
+    const isPassed = cat.adoption_status === '已离世';
+    const photo = cat.photo || 'photos/placeholder.jpg';
+    const content = document.getElementById('modalContent');
+    content.innerHTML = `
+        <button class="modal-close" id="detailClose">✕</button>
+        <div class="detail-hero">
+            <img class="detail-photo ${isPassed ? 'passed' : ''}" src="${escapeHtml(photo)}" alt="${escapeHtml(cat.name || '')}" onerror="this.style.display='none'">
+            <div class="detail-mask"></div>
+            <div class="detail-hero-info">
+                <div class="detail-name-row">
+                    <span class="detail-name">${escapeHtml(cat.name || '')}</span>
+                    <span class="badge ${BADGE_MAP[cat.adoption_status] || 'badge-other'}">${escapeHtml(cat.adoption_status || '')}</span>
+                </div>
+                <div class="detail-title">🎭 ${escapeHtml(cat.title || '')}</div>
+            </div>
+        </div>
+        <div class="detail-card">
+            <div class="detail-section-title">🧬 基本信息</div>
+            ${infoRow('品种/特征', cat.breed || '未知')}
+            ${infoRow('性别', cat.gender || '未知')}
+            ${infoRow('年龄', cat.age || '未知')}
+            ${infoRow('健康状态', cat.health || '待观察')}
+            ${infoRow('绝育情况', cat.neutered ? '<span class="neutered-yes">✅ 已绝育</span>' : '<span class="neutered-no">⚠️ 未绝</span>')}
+        </div>
+        ${cat.traits && cat.traits.length ? `<div class="detail-card">
+            <div class="detail-section-title">🧠 性格标签</div>
+            <div class="detail-tags">${cat.traits.map(t => `<span class="detail-tag">${escapeHtml(t)}</span>`).join('')}</div>
+        </div>` : ''}
+        ${cat.stories && cat.stories.length ? `<div class="detail-card">
+            <div class="detail-section-title">📜 专属事迹</div>
+            ${cat.stories.map(s => `<div class="story-item"><span class="story-dot">🐾</span><span>${escapeHtml(s)}</span></div>`).join('')}
+        </div>` : ''}
+        ${cat.source ? `<div class="detail-source">📢 档案来源:${escapeHtml(cat.source)}</div>` : ''}
+        ${isPassed ? '<div class="memorial">🕊️ 愿它在喵星安息,谢谢它曾陪伴我们的校园时光</div>' : ''}
+    `;
+    document.getElementById('detailModal').classList.remove('hidden');
+    document.getElementById('detailClose').onclick = closeDetail;
+    document.body.style.overflow = 'hidden';
+}
+
+function infoRow(label, content) {
+    return `<div class="detail-info-row"><span class="detail-label">${label}</span><span class="detail-value">${content}</span></div>`;
+}
+
+function closeDetail() {
+    document.getElementById('detailModal').classList.add('hidden');
+    document.body.style.overflow = '';
+}
+
+// ===== 密码弹层 =====
+function openPasswordModal() {
+    document.getElementById('passwordInput').value = '';
+    document.getElementById('passwordError').classList.add('hidden');
+    document.getElementById('passwordModal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    setTimeout(() => document.getElementById('passwordInput').focus(), 100);
+}
+function closePasswordModal() {
+    document.getElementById('passwordModal').classList.add('hidden');
+    document.body.style.overflow = '';
+}
+
+function submitPassword() {
+    const input = document.getElementById('passwordInput').value.trim();
+    if (!input) return;
+    if (input !== CFG.ADMIN_PASSWORD) {
+        const errEl = document.getElementById('passwordError');
+        errEl.textContent = '密码错误';
+        errEl.classList.remove('hidden');
+        return;
+    }
+    if (!CFG.GH_TOKEN) {
+        alert('密码正确!\n\n但当前没有 GitHub Token,无法保存修改到 GitHub。\n\n请在 config.js 中填写 GH_TOKEN,然后重新打开网页。');
+    }
+    isAdmin = true;
+    closePasswordModal();
+    document.getElementById('adminToggle').textContent = '🚪 退出管理';
+    document.getElementById('adminToggle').classList.add('admin-active');
+    document.getElementById('adminAddBtn').classList.remove('hidden');
+    refresh();
+}
+
+function exitAdmin() {
+    if (!confirm('退出管理模式?')) return;
+    isAdmin = false;
+    document.getElementById('adminToggle').textContent = '🔑 管理模式';
+    document.getElementById('adminToggle').classList.remove('admin-active');
+    document.getElementById('adminAddBtn').classList.add('hidden');
+    refresh();
+}
+
+// ===== 编辑表单 =====
+let editingCat = null;
+let isCreatingNew = false;   // 标记是否为新增模式
+
+/** 生成新的 cat ID(短随机) */
+function generateCatId() {
+    return 'cat_' + Date.now().toString(36) + Math.floor(Math.random() * 1000).toString(36);
+}
+
+function openEdit(cat) {
+    isCreatingNew = !cat;
+    editingCat = cat || {
+        id: generateCatId(),
+        name: '',
+        title: '',
+        photo: '',
+        photos: [],
+        breed: '',
+        gender: '未知',
+        age: '',
+        adoption_status: '待领养',
+        health: '',
+        neutered: true,
+        source: '',
+        traits: [],
+        stories: [],
+        created_at: new Date().toISOString().slice(0, 16).replace('T', ' ')
+    };
+    openEditForm();   // 复用同一个表单渲染函数
+}
+
+/** 渲染编辑表单(支持编辑和新增) */
+function openEditForm() {
+    const photosArr = editingCat.photos || (editingCat.photo ? [editingCat.photo] : []);
+    const content = document.getElementById('editContent');
+    content.innerHTML = `
+        <button class="modal-close" id="editClose">✕</button>
+        <div style="padding: 20px;">
+            <div class="form-title">${isCreatingNew ? '🐱 新增猫猫档案' : `✏️ 编辑「${escapeHtml(editingCat.name)}」`}</div>
+
+            <div class="form-block">
+                <label class="form-label">猫咪照片 <span class="form-hint">(可上传,会保存到 GitHub)</span></label>
+                <div class="photo-grid" id="photoGrid">
+                    ${photosArr.map((p, i) => `
+                        <div class="photo-grid-item">
+                            <img class="photo-grid-img" src="${escapeHtml(p)}" alt="图${i+1}">
+                        </div>
+                    `).join('')}
+                    <div class="photo-add-btn" id="photoAddBtn">
+                        <span>+</span><span>上传图片</span>
+                        <input type="file" id="photoFile" accept="image/*" multiple style="display:none;">
+                    </div>
+                </div>
+                <div class="form-hint">⚠️ 上传图片会保存到 GitHub 仓库 photos 目录</div>
+            </div>
+
+            <div class="form-row"><label class="form-label">名字 <span class="required">*</span></label><input class="form-input" id="f-name" value="${escapeHtml(editingCat.name || '')}"></div>
+            <div class="form-row"><label class="form-label">江湖称号</label><input class="form-input" id="f-title" value="${escapeHtml(editingCat.title || '')}"></div>
+            <div class="form-row"><label class="form-label">品种/特征</label><input class="form-input" id="f-breed" value="${escapeHtml(editingCat.breed || '')}"></div>
+            <div class="form-row"><label class="form-label">性别</label>
+                <select class="form-select" id="f-gender">
+                    <option value="公" ${editingCat.gender === '公' ? 'selected' : ''}>公</option>
+                    <option value="母" ${editingCat.gender === '母' ? 'selected' : ''}>母</option>
+                    <option value="未知" ${!editingCat.gender || editingCat.gender === '未知' ? 'selected' : ''}>未知</option>
+                </select>
+            </div>
+            <div class="form-row"><label class="form-label">年龄</label><input class="form-input" id="f-age" value="${escapeHtml(editingCat.age || '')}"></div>
+            <div class="form-row"><label class="form-label">领养状态</label>
+                <select class="form-select" id="f-status">
+                    ${['待领养', '已领养', '暂不领养', '已离世'].map(s => `<option value="${s}" ${editingCat.adoption_status === s ? 'selected' : ''}>${s}</option>`).join('')}
+                </select>
+            </div>
+            <div class="form-row"><label class="form-label">健康状态</label><input class="form-input" id="f-health" value="${escapeHtml(editingCat.health || '')}"></div>
+            <div class="form-row form-row-switch"><label class="form-label">已绝育</label>
+                <label style="display:flex; align-items:center; gap:6px; padding: 6px 0;">
+                    <input type="checkbox" id="f-neutered" ${editingCat.neutered ? 'checked' : ''}> 是
+                </label>
+            </div>
+            <div class="form-row"><label class="form-label">档案来源</label><input class="form-input" id="f-source" value="${escapeHtml(editingCat.source || '')}"></div>
+
+            <div class="form-block">
+                <label class="form-label">性格标签 <span class="form-hint">(每行一条)</span></label>
+                <textarea class="form-textarea" id="f-traits" rows="4">${escapeHtml((editingCat.traits || []).join('\n'))}</textarea>
+            </div>
+
+            <div class="form-block">
+                <label class="form-label">专属事迹 <span class="form-hint">(每行一条)</span></label>
+                <textarea class="form-textarea" id="f-stories" rows="4">${escapeHtml((editingCat.stories || []).join('\n'))}</textarea>
+            </div>
+
+            <div class="form-error hidden" id="editError"></div>
+
+            <div class="btn-row">
+                ${!isCreatingNew ? '<button class="btn-ghost btn-danger" id="btnDelete">🗑 删除</button>' : ''}
+                <button class="btn-ghost" id="btnCancel">取消</button>
+                <button class="btn-primary" id="btnSave">💾 保存到 GitHub</button>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('editClose').onclick = closeEdit;
+    document.getElementById('btnCancel').onclick = closeEdit;
+    const btnDel = document.getElementById('btnDelete');
+    if (btnDel) btnDel.onclick = deleteCat;
+    document.getElementById('btnSave').onclick = saveCat;
+    document.getElementById('photoFile').onchange = onPhotoSelected;
+    document.getElementById('editModal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+
+    editingCat._newPhotos = [];
+}
+
+/** 渲染编辑表单(支持编辑和新增) */
+
+function onPhotoSelected(e) {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    files.forEach(file => {
+        if (!/^image\//.test(file.type)) return alert('只支持图片');
+        if (file.size > 5 * 1024 * 1024) return alert('图片不能超过 5MB');
+        const reader = new FileReader();
+        reader.onload = () => {
+            editingCat._newPhotos = editingCat._newPhotos || [];
+            editingCat._newPhotos.push({
+                name: file.name,
+                contentType: file.type,
+                base64: reader.result.split(',')[1]
+            });
+            // 立即渲染新图片到网格
+            const grid = document.getElementById('photoGrid');
+            const div = document.createElement('div');
+            div.className = 'photo-grid-item';
+            div.innerHTML = `<img class="photo-grid-img" src="${reader.result}" alt="新">`;
+            grid.insertBefore(div, document.getElementById('photoAddBtn'));
+        };
+        reader.readAsDataURL(file);
+    });
+    e.target.value = '';
+}
+
+function closeEdit() {
+    document.getElementById('editModal').classList.add('hidden');
+    document.body.style.overflow = '';
+    editingCat = null;
+    isCreatingNew = false;
+}
+
+// ===== GitHub API 保存 =====
+async function getGithubFile() {
+    const r = await fetch(
+        `https://api.github.com/repos/${CFG.GH_OWNER}/${CFG.GH_REPO}/contents/${CFG.GH_FILE_PATH}?ref=${CFG.GH_BRANCH}`,
+        { headers: { Authorization: `Bearer ${CFG.GH_TOKEN}`, Accept: 'application/vnd.github.v3+json' } }
+    );
+    if (!r.ok) throw new Error(`获取文件失败:${r.status}`);
+    return r.json();
+}
+
+/** 解码 GitHub base64 文本(支持中文) */
+function decodeBase64(b64) {
+    // 去掉换行符,补齐 padding
+    b64 = b64.replace(/\n/g, '');
+    const binStr = atob(b64);
+    // 用 TextDecoder 正确解码为 UTF-8(中文不会乱码)
+    const bytes = new Uint8Array(binStr.length);
+    for (let i = 0; i < binStr.length; i++) bytes[i] = binStr.charCodeAt(i);
+    return new TextDecoder('utf-8').decode(bytes);
+}
+
+/** 编码 UTF-8 文本为 GitHub base64 */
+function encodeBase64(text) {
+    const bytes = new TextEncoder().encode(text);
+    let binStr = '';
+    for (let i = 0; i < bytes.length; i++) binStr += String.fromCharCode(bytes[i]);
+    return btoa(binStr);
+}
+
+async function updateGithubFile(contentBase64, message, sha, retries = 3) {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        const body = {
+            message,
+            content: contentBase64,
+            branch: CFG.GH_BRANCH,
+            sha
+        };
+        const r = await fetch(
+            `https://api.github.com/repos/${CFG.GH_OWNER}/${CFG.GH_REPO}/contents/${CFG.GH_FILE_PATH}`,
+            {
+                method: 'PUT',
+                headers: {
+                    Authorization: `Bearer ${CFG.GH_TOKEN}`,
+                    'Content-Type': 'application/json',
+                    Accept: 'application/vnd.github.v3+json'
+                },
+                body: JSON.stringify(body)
+            }
+        );
+        if (r.ok) return r.json();
+
+        // 409 冲突:取响应中的最新 sha 重试
+        const err = await r.json().catch(() => ({}));
+        if (r.status === 409 && err && err.document && err.document.sha) {
+            console.warn(`SHA 冲突,自动用最新 sha 重试(${attempt}/${retries})`);
+            sha = err.document.sha;
+            continue;
+        }
+        throw new Error(`保存失败:${r.status} ${err.message || ''}`);
+    }
+    throw new Error('保存失败:多次 SHA 冲突');
+}
+
+async function uploadPhotoToGithub(fileName, base64, message, shaMap = {}) {
+    const r = await fetch(
+        `https://api.github.com/repos/${CFG.GH_OWNER}/${CFG.GH_REPO}/contents/${CFG.GH_FILE_PATH_PHOTOS}/${encodeURIComponent(fileName)}`,
+        {
+            method: 'PUT',
+            headers: {
+                Authorization: `Bearer ${CFG.GH_TOKEN}`,
+                'Content-Type': 'application/json',
+                Accept: 'application/vnd.github.v3+json'
+            },
+            body: JSON.stringify({
+                message,
+                content: base64,
+                branch: CFG.GH_BRANCH,
+                ...(shaMap[fileName] ? { sha: shaMap[fileName] } : {})
+            })
+        }
+    );
+    if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        throw new Error(`上传图片 ${fileName} 失败:${r.status} ${err.message || ''}`);
+    }
+    return r.json();
+}
+
+async function deleteGithubFile(filePath, message, sha) {
+    const r = await fetch(
+        `https://api.github.com/repos/${CFG.GH_OWNER}/${CFG.GH_REPO}/contents/${filePath}`,
+        {
+            method: 'DELETE',
+            headers: {
+                Authorization: `Bearer ${CFG.GH_TOKEN}`,
+                'Content-Type': 'application/json',
+                Accept: 'application/vnd.github.v3+json'
+            },
+            body: JSON.stringify({ message, sha, branch: CFG.GH_BRANCH })
+        }
+    );
+    if (!r.ok && r.status !== 404) {
+        const err = await r.json().catch(() => ({}));
+        throw new Error(`删除文件失败:${r.status} ${err.message || ''}`);
+    }
+}
+
+async function saveCat() {
+    if (!CFG.GH_TOKEN) return alert('请先在 config.js 中填入 GitHub Token');
+
+    const name = document.getElementById('f-name').value.trim();
+    if (!name) return alert('请填写名字');
+    const errEl = document.getElementById('editError');
+    errEl.classList.add('hidden');
+    errEl.textContent = '';
+
+    // 收集新照片
+    const newPhotos = editingCat._newPhotos || [];
+
+    try {
+        // 1. 上传新照片到 photos 目录
+        const uploadedPhotos = (editingCat.photos || (editingCat.photo ? [editingCat.photo] : []))
+            .slice();
+        for (const photo of newPhotos) {
+            errEl.textContent = `上传图片: ${photo.name}...`;
+            errEl.classList.remove('hidden');
+            const upRes = await uploadPhotoToGithub(
+                `${Date.now()}-${Math.floor(Math.random() * 10000)}-${photo.name.replace(/[^\w.\u4e00-\u9fa5-]/g, '_')}`,
+                photo.base64,
+                `上传 ${name} 的照片`
+            );
+            uploadedPhotos.push(`photos/${upRes.content.name.split('/').pop()}`);
+        }
+
+        // 2. 更新档案数据(再次获取最新 sha,避免上传照片导致 sha 变化)
+        errEl.textContent = isCreatingNew ? '新建档案...' : '更新档案...';
+        errEl.classList.remove('hidden');
+        const fileInfo = await getGithubFile();
+        const decoded = decodeBase64(fileInfo.content);
+        // 去掉顶部 JS 注释行(以 // 开头的整行)
+        const cleaned = decoded.split('\n')
+            .filter(line => !line.trim().startsWith('//'))
+            .join('\n');
+        const newData = cleaned.replace(/window\.CATS_DATA\s*=\s*/, '').replace(/;\s*$/, '').trim();
+        let catsArr = JSON.parse(newData);
+        const idx = catsArr.findIndex(c => c.id === editingCat.id);
+        if (!isCreatingNew && idx < 0) throw new Error('找不到原档案');
+
+        const newCatData = {
+            ...editingCat,
+            name,
+            title: document.getElementById('f-title').value.trim(),
+            breed: document.getElementById('f-breed').value.trim(),
+            gender: document.getElementById('f-gender').value,
+            age: document.getElementById('f-age').value.trim(),
+            adoption_status: document.getElementById('f-status').value,
+            health: document.getElementById('f-health').value.trim(),
+            neutered: document.getElementById('f-neutered').checked,
+            source: document.getElementById('f-source').value.trim(),
+            traits: document.getElementById('f-traits').value.split('\n').map(s => s.trim()).filter(Boolean),
+            stories: document.getElementById('f-stories').value.split('\n').map(s => s.trim()).filter(Boolean),
+            photo: uploadedPhotos[0] || '',
+            photos: uploadedPhotos
+        };
+
+        if (isCreatingNew) {
+            // 新增:追加到数组
+            catsArr.push(newCatData);
+        } else {
+            // 编辑:替换原档案
+            catsArr[idx] = newCatData;
+        }
+
+        const newJson = 'window.CATS_DATA = ' + JSON.stringify(catsArr, null, 2) + ';';
+        const encoded = encodeBase64(newJson);
+        await updateGithubFile(encoded, isCreatingNew ? `新增 ${name} 的档案` : `更新 ${name} 的档案`, fileInfo.sha);
+
+        alert(`✅ ${name} 已${isCreatingNew ? '新增' : '保存'}!\n\n1~2 分钟后 GitHub Pages 重建完成,刷新页面即可看到。`);
+        closeEdit();
+        // 更新本地数据
+        cats = catsArr;
+        window.CATS_DATA = catsArr;
+        refresh();
+    } catch (err) {
+        errEl.textContent = err.message || '保存失败';
+        errEl.classList.remove('hidden');
+    }
+}
+
+async function deleteCat() {
+    if (!confirm(`确定删除「${editingCat.name}」的档案?`)) return;
+    if (!CFG.GH_TOKEN) return alert('请先在浏览器 Console 跑: localStorage.setItem("gh_token", "你的GitHub PAT")');
+
+    try {
+        const fileInfo = await getGithubFile();
+        const decoded = decodeBase64(fileInfo.content);
+        const cleaned = decoded.split('\n')
+            .filter(line => !line.trim().startsWith('//'))
+            .join('\n');
+        let catsArr = JSON.parse(cleaned.replace(/window\.CATS_DATA\s*=\s*/, '').replace(/;\s*$/, '').trim());
+        catsArr = catsArr.filter(c => c.id !== editingCat.id);
+
+        const newJson = 'window.CATS_DATA = ' + JSON.stringify(catsArr, null, 2) + ';';
+        const encoded = encodeBase64(newJson);
+        await updateGithubFile(encoded, `删除 ${editingCat.name} 的档案`, fileInfo.sha);
+
+        alert(`✅ ${editingCat.name} 已删除!`);
+        closeEdit();
+        cats = catsArr;
+        window.CATS_DATA = catsArr;
+        refresh();
+    } catch (err) {
+        alert('删除失败:' + (err.message || '未知错误'));
+    }
+}
+
+// ===== 事件绑定 =====
+document.getElementById('adminToggle').addEventListener('click', () => {
+    if (isAdmin) exitAdmin();
+    else openPasswordModal();
+});
+
+document.getElementById('adminAddBtn').addEventListener('click', () => {
+    if (isAdmin) openEdit(null);   // null = 新增模式
+});
+
+document.getElementById('passwordConfirm').addEventListener('click', submitPassword);
+document.getElementById('passwordCancel').addEventListener('click', closePasswordModal);
+document.getElementById('passwordClose').addEventListener('click', closePasswordModal);
+document.getElementById('passwordInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') submitPassword();
+});
+document.getElementById('detailModal').addEventListener('click', (e) => {
+    if (e.target.id === 'detailModal') closeDetail();
+});
+document.getElementById('passwordModal').addEventListener('click', (e) => {
+    if (e.target.id === 'passwordModal') closePasswordModal();
+});
+document.getElementById('editModal').addEventListener('click', (e) => {
+    if (e.target.id === 'editModal') closeEdit();
+});
+
+document.getElementById('filters').addEventListener('click', (e) => {
+    const chip = e.target.closest('.chip');
+    if (!chip) return;
+    currentFilter = chip.dataset.filter;
+    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    refresh();
+});
+
+let searchTimer = null;
+document.getElementById('searchInput').addEventListener('input', (e) => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+        currentKeyword = e.target.value;
+        refresh();
+    }, 200);
+});
+
+// ===== 启动 =====
+load();</script>
+</body>
+</html>
