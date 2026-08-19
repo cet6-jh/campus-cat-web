@@ -438,7 +438,11 @@ async function saveCat() {
         errEl.classList.remove('hidden');
         const fileInfo = await getGithubFile();
         const decoded = decodeBase64(fileInfo.content);
-        const newData = decoded.replace(/window\.CATS_DATA\s*=\s*/, '').replace(/;\s*$/, '').trim();
+        // 去掉顶部 JS 注释行(以 // 开头的整行)
+        const cleaned = decoded.split('\n')
+            .filter(line => !line.trim().startsWith('//'))
+            .join('\n');
+        const newData = cleaned.replace(/window\.CATS_DATA\s*=\s*/, '').replace(/;\s*$/, '').trim();
         const catsArr = JSON.parse(newData);
         const idx = catsArr.findIndex(c => c.id === editingCat.id);
         if (idx < 0) throw new Error('找不到原档案');
@@ -483,8 +487,10 @@ async function deleteCat() {
     try {
         const fileInfo = await getGithubFile();
         const decoded = decodeBase64(fileInfo.content);
-        const newData = decoded.replace(/window\.CATS_DATA\s*=\s*/, '').replace(/;\s*$/, '').trim();
-        let catsArr = JSON.parse(newData);
+        const cleaned = decoded.split('\n')
+            .filter(line => !line.trim().startsWith('//'))
+            .join('\n');
+        let catsArr = JSON.parse(cleaned.replace(/window\.CATS_DATA\s*=\s*/, '').replace(/;\s*$/, '').trim());
         catsArr = catsArr.filter(c => c.id !== editingCat.id);
 
         const newJson = 'window.CATS_DATA = ' + JSON.stringify(catsArr, null, 2) + ';';
