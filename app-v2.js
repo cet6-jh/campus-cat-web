@@ -181,6 +181,7 @@ function submitPassword() {
     closePasswordModal();
     document.getElementById('adminToggle').textContent = '🚪 退出管理';
     document.getElementById('adminToggle').classList.add('admin-active');
+    document.getElementById('adminAddBtn').classList.remove('hidden');
     refresh();
 }
 
@@ -189,20 +190,49 @@ function exitAdmin() {
     isAdmin = false;
     document.getElementById('adminToggle').textContent = '🔑 管理模式';
     document.getElementById('adminToggle').classList.remove('admin-active');
+    document.getElementById('adminAddBtn').classList.add('hidden');
     refresh();
 }
 
 // ===== 编辑表单 =====
 let editingCat = null;
+let isCreatingNew = false;   // 标记是否为新增模式
+
+/** 生成新的 cat ID(短随机) */
+function generateCatId() {
+    return 'cat_' + Date.now().toString(36) + Math.floor(Math.random() * 1000).toString(36);
+}
 
 function openEdit(cat) {
-    editingCat = cat;
-    const photosArr = cat.photos || (cat.photo ? [cat.photo] : []);
+    isCreatingNew = !cat;
+    editingCat = cat || {
+        id: generateCatId(),
+        name: '',
+        title: '',
+        photo: '',
+        photos: [],
+        breed: '',
+        gender: '未知',
+        age: '',
+        adoption_status: '待领养',
+        health: '',
+        neutered: true,
+        source: '',
+        traits: [],
+        stories: [],
+        created_at: new Date().toISOString().slice(0, 16).replace('T', ' ')
+    };
+    openEditForm();   // 复用同一个表单渲染函数
+}
+
+/** 渲染编辑表单(支持编辑和新增) */
+function openEditForm() {
+    const photosArr = editingCat.photos || (editingCat.photo ? [editingCat.photo] : []);
     const content = document.getElementById('editContent');
     content.innerHTML = `
         <button class="modal-close" id="editClose">✕</button>
         <div style="padding: 20px;">
-            <div class="form-title">✏️ 编辑「${escapeHtml(cat.name)}」</div>
+            <div class="form-title">${isCreatingNew ? '🐱 新增猫猫档案' : `✏️ 编辑「${escapeHtml(editingCat.name)}」`}</div>
 
             <div class="form-block">
                 <label class="form-label">猫咪照片 <span class="form-hint">(可上传,会保存到 GitHub)</span></label>
@@ -220,43 +250,44 @@ function openEdit(cat) {
                 <div class="form-hint">⚠️ 上传图片会保存到 GitHub 仓库 photos 目录</div>
             </div>
 
-            <div class="form-row"><label class="form-label">名字 <span class="required">*</span></label><input class="form-input" id="f-name" value="${escapeHtml(cat.name || '')}"></div>
-            <div class="form-row"><label class="form-label">江湖称号</label><input class="form-input" id="f-title" value="${escapeHtml(cat.title || '')}"></div>
-            <div class="form-row"><label class="form-label">品种/特征</label><input class="form-input" id="f-breed" value="${escapeHtml(cat.breed || '')}"></div>
+            <div class="form-row"><label class="form-label">名字 <span class="required">*</span></label><input class="form-input" id="f-name" value="${escapeHtml(editingCat.name || '')}"></div>
+            <div class="form-row"><label class="form-label">江湖称号</label><input class="form-input" id="f-title" value="${escapeHtml(editingCat.title || '')}"></div>
+            <div class="form-row"><label class="form-label">品种/特征</label><input class="form-input" id="f-breed" value="${escapeHtml(editingCat.breed || '')}"></div>
             <div class="form-row"><label class="form-label">性别</label>
                 <select class="form-select" id="f-gender">
-                    <option value="公" ${cat.gender === '公' ? 'selected' : ''}>公</option>
-                    <option value="母" ${cat.gender === '母' ? 'selected' : ''}>母</option>
-                    <option value="未知" ${!cat.gender || cat.gender === '未知' ? 'selected' : ''}>未知</option>
+                    <option value="公" ${editingCat.gender === '公' ? 'selected' : ''}>公</option>
+                    <option value="母" ${editingCat.gender === '母' ? 'selected' : ''}>母</option>
+                    <option value="未知" ${!editingCat.gender || editingCat.gender === '未知' ? 'selected' : ''}>未知</option>
                 </select>
             </div>
-            <div class="form-row"><label class="form-label">年龄</label><input class="form-input" id="f-age" value="${escapeHtml(cat.age || '')}"></div>
+            <div class="form-row"><label class="form-label">年龄</label><input class="form-input" id="f-age" value="${escapeHtml(editingCat.age || '')}"></div>
             <div class="form-row"><label class="form-label">领养状态</label>
                 <select class="form-select" id="f-status">
-                    ${['待领养', '已领养', '暂不领养', '已离世'].map(s => `<option value="${s}" ${cat.adoption_status === s ? 'selected' : ''}>${s}</option>`).join('')}
+                    ${['待领养', '已领养', '暂不领养', '已离世'].map(s => `<option value="${s}" ${editingCat.adoption_status === s ? 'selected' : ''}>${s}</option>`).join('')}
                 </select>
             </div>
-            <div class="form-row"><label class="form-label">健康状态</label><input class="form-input" id="f-health" value="${escapeHtml(cat.health || '')}"></div>
+            <div class="form-row"><label class="form-label">健康状态</label><input class="form-input" id="f-health" value="${escapeHtml(editingCat.health || '')}"></div>
             <div class="form-row form-row-switch"><label class="form-label">已绝育</label>
                 <label style="display:flex; align-items:center; gap:6px; padding: 6px 0;">
-                    <input type="checkbox" id="f-neutered" ${cat.neutered ? 'checked' : ''}> 是
+                    <input type="checkbox" id="f-neutered" ${editingCat.neutered ? 'checked' : ''}> 是
                 </label>
             </div>
-            <div class="form-row"><label class="form-label">档案来源</label><input class="form-input" id="f-source" value="${escapeHtml(cat.source || '')}"></div>
+            <div class="form-row"><label class="form-label">档案来源</label><input class="form-input" id="f-source" value="${escapeHtml(editingCat.source || '')}"></div>
 
             <div class="form-block">
                 <label class="form-label">性格标签 <span class="form-hint">(每行一条)</span></label>
-                <textarea class="form-textarea" id="f-traits" rows="4">${escapeHtml((cat.traits || []).join('\n'))}</textarea>
+                <textarea class="form-textarea" id="f-traits" rows="4">${escapeHtml((editingCat.traits || []).join('\n'))}</textarea>
             </div>
+
             <div class="form-block">
                 <label class="form-label">专属事迹 <span class="form-hint">(每行一条)</span></label>
-                <textarea class="form-textarea" id="f-stories" rows="4">${escapeHtml((cat.stories || []).join('\n'))}</textarea>
+                <textarea class="form-textarea" id="f-stories" rows="4">${escapeHtml((editingCat.stories || []).join('\n'))}</textarea>
             </div>
 
             <div class="form-error hidden" id="editError"></div>
 
             <div class="btn-row">
-                <button class="btn-ghost btn-danger" id="btnDelete">🗑 删除</button>
+                ${!isCreatingNew ? '<button class="btn-ghost btn-danger" id="btnDelete">🗑 删除</button>' : ''}
                 <button class="btn-ghost" id="btnCancel">取消</button>
                 <button class="btn-primary" id="btnSave">💾 保存到 GitHub</button>
             </div>
@@ -265,15 +296,17 @@ function openEdit(cat) {
 
     document.getElementById('editClose').onclick = closeEdit;
     document.getElementById('btnCancel').onclick = closeEdit;
-    document.getElementById('btnDelete').onclick = deleteCat;
+    const btnDel = document.getElementById('btnDelete');
+    if (btnDel) btnDel.onclick = deleteCat;
     document.getElementById('btnSave').onclick = saveCat;
     document.getElementById('photoFile').onchange = onPhotoSelected;
     document.getElementById('editModal').classList.remove('hidden');
     document.body.style.overflow = 'hidden';
 
-    // 把待上传图片存到 cat 对象上(临时)
     editingCat._newPhotos = [];
 }
+
+/** 渲染编辑表单(支持编辑和新增) */
 
 function onPhotoSelected(e) {
     const files = Array.from(e.target.files || []);
@@ -305,6 +338,7 @@ function closeEdit() {
     document.getElementById('editModal').classList.add('hidden');
     document.body.style.overflow = '';
     editingCat = null;
+    isCreatingNew = false;
 }
 
 // ===== GitHub API 保存 =====
@@ -442,7 +476,7 @@ async function saveCat() {
         }
 
         // 2. 更新档案数据(再次获取最新 sha,避免上传照片导致 sha 变化)
-        errEl.textContent = '更新档案...';
+        errEl.textContent = isCreatingNew ? '新建档案...' : '更新档案...';
         errEl.classList.remove('hidden');
         const fileInfo = await getGithubFile();
         const decoded = decodeBase64(fileInfo.content);
@@ -451,11 +485,11 @@ async function saveCat() {
             .filter(line => !line.trim().startsWith('//'))
             .join('\n');
         const newData = cleaned.replace(/window\.CATS_DATA\s*=\s*/, '').replace(/;\s*$/, '').trim();
-        const catsArr = JSON.parse(newData);
+        let catsArr = JSON.parse(newData);
         const idx = catsArr.findIndex(c => c.id === editingCat.id);
-        if (idx < 0) throw new Error('找不到原档案');
+        if (!isCreatingNew && idx < 0) throw new Error('找不到原档案');
 
-        catsArr[idx] = {
+        const newCatData = {
             ...editingCat,
             name,
             title: document.getElementById('f-title').value.trim(),
@@ -472,11 +506,19 @@ async function saveCat() {
             photos: uploadedPhotos
         };
 
+        if (isCreatingNew) {
+            // 新增:追加到数组
+            catsArr.push(newCatData);
+        } else {
+            // 编辑:替换原档案
+            catsArr[idx] = newCatData;
+        }
+
         const newJson = 'window.CATS_DATA = ' + JSON.stringify(catsArr, null, 2) + ';';
         const encoded = encodeBase64(newJson);
-        await updateGithubFile(encoded, `更新 ${name} 的档案`, fileInfo.sha);
+        await updateGithubFile(encoded, isCreatingNew ? `新增 ${name} 的档案` : `更新 ${name} 的档案`, fileInfo.sha);
 
-        alert(`✅ ${name} 已保存!\n\n1~2 分钟后 GitHub Pages 重建完成,刷新页面即可看到。`);
+        alert(`✅ ${name} 已${isCreatingNew ? '新增' : '保存'}!\n\n1~2 分钟后 GitHub Pages 重建完成,刷新页面即可看到。`);
         closeEdit();
         // 更新本地数据
         cats = catsArr;
@@ -519,6 +561,10 @@ async function deleteCat() {
 document.getElementById('adminToggle').addEventListener('click', () => {
     if (isAdmin) exitAdmin();
     else openPasswordModal();
+});
+
+document.getElementById('adminAddBtn').addEventListener('click', () => {
+    if (isAdmin) openEdit(null);   // null = 新增模式
 });
 
 document.getElementById('passwordConfirm').addEventListener('click', submitPassword);
