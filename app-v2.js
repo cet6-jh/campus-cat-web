@@ -1,7 +1,13 @@
-// app.js —— 校园猫猫档案(在线编辑版)
+// app-v2.js —— 校园猫猫档案（在线编辑版）
 // 数据从 data.js 加载,通过 GitHub API 实现网页编辑
 
 const CFG = window.APP_CONFIG;
+
+function byId(id) {
+    const element = document.getElementById(id);
+    if (!element) throw new Error(`页面缺少必要元素：#${id}`);
+    return element;
+}
 
 // 优先从 localStorage 读取 GitHub Token(更安全,不暴露在 GitHub 上)
 CFG.GH_TOKEN = localStorage.getItem('gh_token') || CFG.GH_TOKEN || '';
@@ -21,7 +27,10 @@ const BADGE_MAP = {
 // ===== 加载数据 =====
 function load() {
     try {
-        cats = window.CATS_DATA || [];
+        if (!Array.isArray(window.CATS_DATA)) {
+            throw new Error('猫咪资料未正确加载，请刷新页面后重试。');
+        }
+        cats = window.CATS_DATA;
         renderList(getFiltered());
     } catch (err) {
         document.getElementById('errorBox').classList.remove('hidden');
@@ -568,6 +577,10 @@ async function deleteCat() {
     }
 }
 
+// ===== 启动资料渲染 =====
+// 资料优先渲染，避免可选管理控件的问题阻塞访客浏览。
+load();
+
 // ===== 事件绑定 =====
 document.getElementById('adminToggle').addEventListener('click', () => {
     if (isAdmin) exitAdmin();
@@ -580,25 +593,25 @@ document.getElementById('adminAddBtn').addEventListener('click', () => {
 
 // ===== 设置 Token 弹层 =====
 function openTokenModal(message = '') {
-    $('tokenInput').value = localStorage.getItem('gh_token') || '';
-    const error = $('tokenError');
+    byId('tokenInput').value = localStorage.getItem('gh_token') || '';
+    const error = byId('tokenError');
     if (message) {
         error.textContent = message;
         error.classList.remove('hidden');
     } else {
         error.classList.add('hidden');
     }
-    $('tokenModal').classList.remove('hidden');
+    byId('tokenModal').classList.remove('hidden');
     document.body.style.overflow = 'hidden';
-    setTimeout(() => $('tokenInput').focus(), 100);
+    setTimeout(() => byId('tokenInput').focus(), 100);
 }
 function closeTokenModal() {
-    $('tokenModal').classList.add('hidden');
+    byId('tokenModal').classList.add('hidden');
     document.body.style.overflow = '';
 }
 function saveToken() {
-    const v = $('tokenInput').value.trim();
-    if (!v) { const e = $('tokenError'); e.textContent = '请输入 token'; e.classList.remove('hidden'); return; }
+    const v = byId('tokenInput').value.trim();
+    if (!v) { const e = byId('tokenError'); e.textContent = '请输入 token'; e.classList.remove('hidden'); return; }
     localStorage.setItem('gh_token', v);
     CFG.GH_TOKEN = v;
     closeTokenModal();
@@ -608,17 +621,17 @@ function deleteToken() {
     if (!confirm('确定清除本地保存的 Token?')) return;
     localStorage.removeItem('gh_token');
     CFG.GH_TOKEN = '';
-    $('tokenInput').value = '';
+    byId('tokenInput').value = '';
     alert('Token 已清除');
 }
 document.getElementById('adminTokenBtn').addEventListener('click', () => {
     if (isAdmin) openTokenModal();
 });
-$('tokenCancel').onclick = closeTokenModal;
-$('tokenMask').onclick = closeTokenModal;
-$('tokenSave').onclick = saveToken;
-$('tokenDelete').onclick = deleteToken;
-$('tokenInput').addEventListener('keydown', e => { if (e.key === 'Enter') saveToken(); });
+byId('tokenCancel').onclick = closeTokenModal;
+byId('tokenMask').onclick = closeTokenModal;
+byId('tokenSave').onclick = saveToken;
+byId('tokenDelete').onclick = deleteToken;
+byId('tokenInput').addEventListener('keydown', e => { if (e.key === 'Enter') saveToken(); });
 
 document.getElementById('passwordConfirm').addEventListener('click', submitPassword);
 document.getElementById('passwordCancel').addEventListener('click', closePasswordModal);
@@ -653,6 +666,3 @@ document.getElementById('searchInput').addEventListener('input', (e) => {
         refresh();
     }, 200);
 });
-
-// ===== 启动 =====
-load();
