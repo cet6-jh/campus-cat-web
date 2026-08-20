@@ -84,16 +84,6 @@ img { display: block; max-width: 100%; }
     cursor: pointer;
     font-weight: 600;
 }
-.admin-token-btn {
-    margin-top: 8px;
-    padding: 6px 16px;
-    border-radius: 20px;
-    border: 1.5px solid #8E9BC4;
-    background: #fff;
-    color: #8E9BC4;
-    font-size: 13px;
-    cursor: pointer;
-}
 
 .search-box { padding: 0 16px 14px; }
 .search-input {
@@ -227,15 +217,12 @@ img { display: block; max-width: 100%; }
     top: 10px;
     right: 10px;
     padding: 4px 12px;
-    background: #4A6FA5;          /* 深蓝色,跟所有徽章颜色都不同 */
+    background: rgba(255, 159, 67, 0.95);
     color: #fff;
-    border: 2px solid #fff;        /* 白色边框,从照片上更醒目 */
+    border: none;
     border-radius: 12px;
     font-size: 12px;
-    font-weight: 600;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
     cursor: pointer;
-    z-index: 5;                    /* 永远在徽章上面 */
 }
 
 .empty {
@@ -582,31 +569,7 @@ img { display: block; max-width: 100%; }
         <p class="header-sub">全校猫咪的「户口本」,一起来认识它们吧</p>
         <button class="admin-toggle" id="adminToggle">🔑 管理模式</button>
         <button class="admin-add-btn hidden" id="adminAddBtn">➕ 新增猫咪</button>
-        <button class="admin-token-btn hidden" id="adminTokenBtn">⚙️ 设置 GitHub Token</button>
     </header>
-
-    <!-- 设置 Token 弹层 -->
-    <div class="modal modal-narrow hidden" id="tokenModal">
-        <div class="modal-mask" id="tokenMask"></div>
-        <div class="modal-content" style="padding: 20px;">
-            <div class="form-title">⚙️ 设置 GitHub Token</div>
-            <p class="form-tip">
-                在 GitHub → Settings → Developer settings → Personal access tokens 创建一个 token<br>
-                <b>权限</b>:Contents (Read and Write)<br>
-                <b>选仓库</b>:campus-cat-web
-            </p>
-            <input id="tokenInput" class="form-input" type="password" placeholder="ghp_xxxxxxxxxxxxx" style="border:1px solid #E3D3B8;">
-            <p class="form-tip" style="margin-top: 12px; font-size: 12px;">
-                Token 只存在你的浏览器,<b>不会上传到任何服务器</b>
-            </p>
-            <p class="form-error hidden" id="tokenError"></p>
-            <div class="btn-row" style="margin-top: 16px;">
-                <button class="btn-ghost" id="tokenDelete">清除 Token</button>
-                <button class="btn-ghost" id="tokenCancel">取消</button>
-                <button class="btn-primary" id="tokenSave">保存 Token</button>
-            </div>
-        </div>
-    </div>
 
     <div class="search-box">
         <input id="searchInput" class="search-input" type="search" placeholder="🔍 搜一搜猫猫名字…" autocomplete="off">
@@ -1083,14 +1046,18 @@ const BADGE_MAP = {
 
 // ===== 加载数据 =====
 function load() {
+    console.log("[DEBUG] load() started");
     try {
         cats = window.CATS_DATA || [];
+    console.log("[DEBUG] CATS_DATA 加载,共", cats.length, "只猫");
         renderList(getFiltered());
+    console.log("[DEBUG] renderList 完成");
     } catch (err) {
         document.getElementById('errorBox').classList.remove('hidden');
         document.getElementById('errorBox').textContent = '数据加载失败:' + err.message;
     } finally {
         document.getElementById('loadingBox').classList.add('hidden');
+    console.log("[DEBUG] loading 已隐藏");
     }
 }
 
@@ -1155,6 +1122,7 @@ function formatMeta(cat) {
 
 function refresh() {
     renderList(getFiltered());
+    console.log("[DEBUG] renderList 完成");
 }
 
 // ===== HTML 转义 =====
@@ -1245,7 +1213,6 @@ function submitPassword() {
     document.getElementById('adminToggle').textContent = '🚪 退出管理';
     document.getElementById('adminToggle').classList.add('admin-active');
     document.getElementById('adminAddBtn').classList.remove('hidden');
-    document.getElementById('adminTokenBtn').classList.remove('hidden');
     refresh();
 }
 
@@ -1255,7 +1222,6 @@ function exitAdmin() {
     document.getElementById('adminToggle').textContent = '🔑 管理模式';
     document.getElementById('adminToggle').classList.remove('admin-active');
     document.getElementById('adminAddBtn').classList.add('hidden');
-    document.getElementById('adminTokenBtn').classList.add('hidden');
     refresh();
 }
 
@@ -1632,43 +1598,6 @@ document.getElementById('adminAddBtn').addEventListener('click', () => {
     if (isAdmin) openEdit(null);   // null = 新增模式
 });
 
-// ===== 设置 Token 弹层 =====
-function openTokenModal() {
-    $('tokenInput').value = localStorage.getItem('gh_token') || '';
-    $('tokenError').classList.add('hidden');
-    $('tokenModal').classList.remove('hidden');
-    document.body.style.overflow = 'hidden';
-    setTimeout(() => $('tokenInput').focus(), 100);
-}
-function closeTokenModal() {
-    $('tokenModal').classList.add('hidden');
-    document.body.style.overflow = '';
-}
-function saveToken() {
-    const v = $('tokenInput').value.trim();
-    if (!v) { const e = $('tokenError'); e.textContent = '请输入 token'; e.classList.remove('hidden'); return; }
-    localStorage.setItem('gh_token', v);
-    CFG.GH_TOKEN = v;
-    closeTokenModal();
-    wx_showToast && wx_showToast('Token 已保存');
-    alert('✅ Token 已保存到浏览器(仅本机)\n\n现在编辑功能可用!');
-}
-function deleteToken() {
-    if (!confirm('确定清除本地保存的 Token?')) return;
-    localStorage.removeItem('gh_token');
-    CFG.GH_TOKEN = '';
-    $('tokenInput').value = '';
-    alert('Token 已清除');
-}
-document.getElementById('adminTokenBtn').addEventListener('click', () => {
-    if (isAdmin) openTokenModal();
-});
-$('tokenCancel').onclick = closeTokenModal;
-$('tokenMask').onclick = closeTokenModal;
-$('tokenSave').onclick = saveToken;
-$('tokenDelete').onclick = deleteToken;
-$('tokenInput').addEventListener('keydown', e => { if (e.key === 'Enter') saveToken(); });
-
 document.getElementById('passwordConfirm').addEventListener('click', submitPassword);
 document.getElementById('passwordCancel').addEventListener('click', closePasswordModal);
 document.getElementById('passwordClose').addEventListener('click', closePasswordModal);
@@ -1704,6 +1633,8 @@ document.getElementById('searchInput').addEventListener('input', (e) => {
 });
 
 // ===== 启动 =====
-load();</script>
+console.log("[DEBUG] 即将调用 load()");
+load();
+console.log("[DEBUG] load() 调用完毕");</script>
 </body>
 </html>

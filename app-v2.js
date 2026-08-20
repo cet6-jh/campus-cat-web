@@ -182,6 +182,7 @@ function submitPassword() {
     document.getElementById('adminToggle').textContent = '🚪 退出管理';
     document.getElementById('adminToggle').classList.add('admin-active');
     document.getElementById('adminAddBtn').classList.remove('hidden');
+    document.getElementById('adminTokenBtn').classList.remove('hidden');
     refresh();
 }
 
@@ -191,6 +192,7 @@ function exitAdmin() {
     document.getElementById('adminToggle').textContent = '🔑 管理模式';
     document.getElementById('adminToggle').classList.remove('admin-active');
     document.getElementById('adminAddBtn').classList.add('hidden');
+    document.getElementById('adminTokenBtn').classList.add('hidden');
     refresh();
 }
 
@@ -566,6 +568,43 @@ document.getElementById('adminToggle').addEventListener('click', () => {
 document.getElementById('adminAddBtn').addEventListener('click', () => {
     if (isAdmin) openEdit(null);   // null = 新增模式
 });
+
+// ===== 设置 Token 弹层 =====
+function openTokenModal() {
+    $('tokenInput').value = localStorage.getItem('gh_token') || '';
+    $('tokenError').classList.add('hidden');
+    $('tokenModal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    setTimeout(() => $('tokenInput').focus(), 100);
+}
+function closeTokenModal() {
+    $('tokenModal').classList.add('hidden');
+    document.body.style.overflow = '';
+}
+function saveToken() {
+    const v = $('tokenInput').value.trim();
+    if (!v) { const e = $('tokenError'); e.textContent = '请输入 token'; e.classList.remove('hidden'); return; }
+    localStorage.setItem('gh_token', v);
+    CFG.GH_TOKEN = v;
+    closeTokenModal();
+    wx_showToast && wx_showToast('Token 已保存');
+    alert('✅ Token 已保存到浏览器(仅本机)\n\n现在编辑功能可用!');
+}
+function deleteToken() {
+    if (!confirm('确定清除本地保存的 Token?')) return;
+    localStorage.removeItem('gh_token');
+    CFG.GH_TOKEN = '';
+    $('tokenInput').value = '';
+    alert('Token 已清除');
+}
+document.getElementById('adminTokenBtn').addEventListener('click', () => {
+    if (isAdmin) openTokenModal();
+});
+$('tokenCancel').onclick = closeTokenModal;
+$('tokenMask').onclick = closeTokenModal;
+$('tokenSave').onclick = saveToken;
+$('tokenDelete').onclick = deleteToken;
+$('tokenInput').addEventListener('keydown', e => { if (e.key === 'Enter') saveToken(); });
 
 document.getElementById('passwordConfirm').addEventListener('click', submitPassword);
 document.getElementById('passwordCancel').addEventListener('click', closePasswordModal);
