@@ -174,9 +174,6 @@ function submitPassword() {
         errEl.classList.remove('hidden');
         return;
     }
-    if (!CFG.GH_TOKEN) {
-        alert('密码正确!\n\n但当前没有 GitHub Token,无法保存修改到 GitHub。\n\n请在 config.js 中填写 GH_TOKEN,然后重新打开网页。');
-    }
     isAdmin = true;
     closePasswordModal();
     document.getElementById('adminToggle').textContent = '🚪 退出管理';
@@ -184,6 +181,9 @@ function submitPassword() {
     document.getElementById('adminAddBtn').classList.remove('hidden');
     document.getElementById('adminTokenBtn').classList.remove('hidden');
     refresh();
+    if (!CFG.GH_TOKEN) {
+        openTokenModal('已进入管理模式。设置 GitHub Token 后才能将修改保存到网站。');
+    }
 }
 
 function exitAdmin() {
@@ -349,8 +349,22 @@ async function getGithubFile() {
         `https://api.github.com/repos/${CFG.GH_OWNER}/${CFG.GH_REPO}/contents/${CFG.GH_FILE_PATH}?ref=${CFG.GH_BRANCH}`,
         { headers: { Authorization: `Bearer ${CFG.GH_TOKEN}`, Accept: 'application/vnd.github.v3+json' } }
     );
-    if (!r.ok) throw new Error(`获取文件失败:${r.status}`);
+    if (!r.ok) throw new Error(await githubError(r, '获取资料文件失败'));
     return r.json();
+}
+
+async function githubError(response, fallback) {
+    const err = await response.json().catch(() => ({}));
+    if (response.status === 401) return 'GitHub Token 无效或已过期，请重新设置。';
+    if (response.status === 403) return 'GitHub Token 没有此仓库的写入权限，请检查 Contents: Read and write 权限。';
+    if (response.status === 404) return '未找到仓库或资料文件，请检查仓库配置与 Token 的仓库访问范围。';
+    return `${fallback}（${response.status}）${err.message ? `：${err.message}` : ''}`;
+}
+
+function requireGithubToken() {
+    if (CFG.GH_TOKEN) return true;
+    openTokenModal('请先设置 GitHub Token，才能把资料修改保存到网站。');
+    return false;
 }
 
 /** 解码 GitHub base64 文本(支持中文) */
@@ -393,15 +407,12 @@ async function updateGithubFile(contentBase64, message, sha, retries = 3) {
             }
         );
         if (r.ok) return r.json();
-
-        // 409 冲突:取响应中的最新 sha 重试
-        const err = await r.json().catch(() => ({}));
-        if (r.status === 409 && err && err.document && err.document.sha) {
-            console.warn(`SHA 冲突,自动用最新 sha 重试(${attempt}/${retries})`);
-            sha = err.document.sha;
+        if (r.status === 409) {
+            console.warn(`SHA 冲突，重新获取后重试（${attempt}/${retries}）`);
+            sha = (await getGithubFile()).sha;
             continue;
         }
-        throw new Error(`保存失败:${r.status} ${err.message || ''}`);
+        throw new Error(await githubError(r, '保存资料失败'));
     }
     throw new Error('保存失败:多次 SHA 冲突');
 }
@@ -425,8 +436,7 @@ async function uploadPhotoToGithub(fileName, base64, message, shaMap = {}) {
         }
     );
     if (!r.ok) {
-        const err = await r.json().catch(() => ({}));
-        throw new Error(`上传图片 ${fileName} 失败:${r.status} ${err.message || ''}`);
+        throw new Error(await githubError(r, `上传图片“${fileName}”失败`));
     }
     return r.json();
 }
@@ -445,13 +455,12 @@ async function deleteGithubFile(filePath, message, sha) {
         }
     );
     if (!r.ok && r.status !== 404) {
-        const err = await r.json().catch(() => ({}));
-        throw new Error(`删除文件失败:${r.status} ${err.message || ''}`);
+        throw new Error(await githubError(r, '删除图片失败'));
     }
 }
 
 async function saveCat() {
-    if (!CFG.GH_TOKEN) return alert('请先在 config.js 中填入 GitHub Token');
+    if (!requireGithubToken()) return;
 
     const name = document.getElementById('f-name').value.trim();
     if (!name) return alert('请填写名字');
@@ -534,7 +543,7 @@ async function saveCat() {
 
 async function deleteCat() {
     if (!confirm(`确定删除「${editingCat.name}」的档案?`)) return;
-    if (!CFG.GH_TOKEN) return alert('请先在浏览器 Console 跑: localStorage.setItem("gh_token", "你的GitHub PAT")');
+    if (!requireGithubToken()) return;
 
     try {
         const fileInfo = await getGithubFile();
@@ -570,9 +579,15 @@ document.getElementById('adminAddBtn').addEventListener('click', () => {
 });
 
 // ===== 设置 Token 弹层 =====
-function openTokenModal() {
+function openTokenModal(message = '') {
     $('tokenInput').value = localStorage.getItem('gh_token') || '';
-    $('tokenError').classList.add('hidden');
+    const error = $('tokenError');
+    if (message) {
+        error.textContent = message;
+        error.classList.remove('hidden');
+    } else {
+        error.classList.add('hidden');
+    }
     $('tokenModal').classList.remove('hidden');
     document.body.style.overflow = 'hidden';
     setTimeout(() => $('tokenInput').focus(), 100);
@@ -587,7 +602,6 @@ function saveToken() {
     localStorage.setItem('gh_token', v);
     CFG.GH_TOKEN = v;
     closeTokenModal();
-    wx_showToast && wx_showToast('Token 已保存');
     alert('✅ Token 已保存到浏览器(仅本机)\n\n现在编辑功能可用!');
 }
 function deleteToken() {

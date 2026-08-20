@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="校园猫猫档案 - 全校猫咪的户口本,认识每一只校园猫咪">
     <title>🐾 校园猫猫档案</title>
-    <link rel="stylesheet" href="styles.css?v=2">
+    <link rel="stylesheet" href="styles.css?v=3">
 </head>
 <body>
 
@@ -23,13 +23,12 @@
         <div class="modal-content" style="padding: 20px;">
             <div class="form-title">⚙️ 设置 GitHub Token</div>
             <p class="form-tip">
-                在 GitHub → Settings → Developer settings → Personal access tokens 创建一个 token<br>
-                <b>权限</b>:Contents (Read and Write)<br>
-                <b>选仓库</b>:campus-cat-web
+                创建仅限 <b>cet6-jh/campus-cat-web</b> 的 Fine-grained Personal Access Token。<br>
+                <b>Repository permissions</b>：Contents → Read and write。
             </p>
             <input id="tokenInput" class="form-input" type="password" placeholder="ghp_xxxxxxxxxxxxx" style="border:1px solid #E3D3B8;">
             <p class="form-tip" style="margin-top: 12px; font-size: 12px;">
-                Token 只存在你的浏览器,<b>不会上传到任何服务器</b>
+                Token 仅保存在当前浏览器，不会写入网站文件或上传到其他服务器。
             </p>
             <p class="form-error hidden" id="tokenError"></p>
             <div class="btn-row" style="margin-top: 16px;">
@@ -85,8 +84,8 @@
                     <button class="btn-primary" id="passwordConfirm">进入管理</button>
                 </div>
                 <div style="margin-top: 16px; padding-top: 16px; border-top: 1px dashed #F3E9D8; font-size: 12px; color: #B8A890; line-height: 1.6;">
-                    ⚙️ 首次使用需在 <code>config.js</code> 中填入 GitHub Token。<br>
-                    Token 权限:Contents (Read and Write)。
+                    ⚙️ 进入管理模式后，点击“设置 GitHub Token”即可启用保存。<br>
+                    Token 仅保存在当前浏览器，离开本机前请主动清除。
                 </div>
             </div>
         </div>
@@ -97,8 +96,8 @@
         <div class="modal-content" id="editContent"></div>
     </div>
 
-    <script src="config.js?v=2"></script>
-    <script src="data.js?v=2"></script>
-    <script src="app-v2.js"></script>
+    <script src="config.js?v=3"></script>
+    <script src="data.js?v=3"></script>
+    <script src="app-v2.js?v=3"></script>
 </body>
 </html>
