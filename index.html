@@ -2,10 +2,11 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
+    <meta name="format-detection" content="telephone=no, email=no, address=no">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="校园猫猫档案 - 全校猫咪的户口本,认识每一只校园猫咪">
     <title>🐾 校园猫猫档案</title>
-    <link rel="stylesheet" href="styles.css?v=4">
+    <link rel="stylesheet" href="styles.css?v=5">
 </head>
 <body>
 
@@ -26,9 +27,9 @@
                 创建仅限 <b>cet6-jh/campus-cat-web</b> 的 Fine-grained Personal Access Token。<br>
                 <b>Repository permissions</b>：Contents → Read and write。
             </p>
-            <input id="tokenInput" class="form-input" type="password" placeholder="ghp_xxxxxxxxxxxxx" style="border:1px solid #E3D3B8;">
+            <input id="tokenInput" class="form-input" type="password" placeholder="github_pat_…" autocomplete="off" autocapitalize="off" spellcheck="false" style="border:1px solid #E3D3B8;">
             <p class="form-tip" style="margin-top: 12px; font-size: 12px;">
-                Token 仅保存在当前浏览器，不会写入网站文件或上传到其他服务器。
+                同一设备、同一浏览器只需设置一次；换设备、换浏览器或清理浏览数据后才需重新设置。Token 不会写入网站文件。
             </p>
             <p class="form-error hidden" id="tokenError"></p>
             <div class="btn-row" style="margin-top: 16px;">
@@ -84,8 +85,8 @@
                     <button class="btn-primary" id="passwordConfirm">进入管理</button>
                 </div>
                 <div style="margin-top: 16px; padding-top: 16px; border-top: 1px dashed #F3E9D8; font-size: 12px; color: #B8A890; line-height: 1.6;">
-                    ⚙️ 进入管理模式后，点击“设置 GitHub Token”即可启用保存。<br>
-                    Token 仅保存在当前浏览器，离开本机前请主动清除。
+                    ⚙️ 密码只用于进入管理界面；保存资料仍需本浏览器已设置 GitHub Token。<br>
+                    Token 首次设置后会保存在本浏览器，不用每次编辑重复输入。
                 </div>
             </div>
         </div>
@@ -96,8 +97,8 @@
         <div class="modal-content" id="editContent"></div>
     </div>
 
-    <script src="config.js?v=4"></script>
-    <script src="data.js?v=4"></script>
-    <script src="app-v2.js?v=4"></script>
+    <script src="config.js?v=5"></script>
+    <script src="data.js?v=5"></script>
+    <script src="app-v2.js?v=5"></script>
 </body>
 </html>

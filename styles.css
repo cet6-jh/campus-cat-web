@@ -19,7 +19,11 @@
     --danger: #D9534F;
 }
 
-html { font-size: 16px; }
+html {
+    font-size: 16px;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB",
@@ -34,6 +38,10 @@ body {
 }
 
 img { display: block; max-width: 100%; }
+button, input, textarea, select { font: inherit; }
+button { min-height: 44px; touch-action: manipulation; }
+input, textarea, select { font-size: 16px; }
+.form-tip, .form-error, .detail-value { overflow-wrap: anywhere; }
 
 .header {
     padding: 28px 20px 16px;
@@ -567,3 +575,41 @@ img { display: block; max-width: 100%; }
 .footer p + p { margin-top: 4px; }
 
 .hidden { display: none !important; }
+
+/* 小屏幕与移动浏览器适配 */
+@media (max-width: 480px) {
+    body { max-width: none; }
+    .header { padding: calc(20px + env(safe-area-inset-top)) 16px 14px; }
+    .header-title { font-size: 24px; }
+    .search-box, .list { padding-left: 12px; padding-right: 12px; }
+    .filters {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding-left: 12px;
+        padding-right: 12px;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+    }
+    .filters::-webkit-scrollbar { display: none; }
+    .chip { flex: 0 0 auto; white-space: nowrap; padding: 8px 16px; }
+    .cat-card { padding: 12px; border-radius: 14px; }
+    .cat-photo-wrap { width: 88px; height: 88px; }
+    .cat-info { margin-left: 12px; }
+    .cat-name { font-size: 16px; }
+    .cat-tags { gap: 5px; }
+    .cat-tag { max-width: 100%; }
+    .detail-hero { height: min(58vw, 300px); min-height: 220px; }
+    .detail-card { margin-left: 12px; margin-right: 12px; padding: 14px; }
+    .detail-info-row { gap: 10px; }
+    .detail-label { width: 80px; }
+    .modal { padding-bottom: env(safe-area-inset-bottom); }
+    .modal-content { max-height: min(90dvh, 760px); }
+    .modal-narrow .modal-content {
+        width: calc(100% - 24px);
+        margin: 0 12px;
+        max-height: calc(100dvh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    }
+    .btn-row { flex-wrap: wrap; }
+    .btn-row .btn-primary { flex: 1 1 132px; }
+    .btn-row .btn-ghost { flex: 1 1 92px; }
+}
