@@ -59,7 +59,7 @@ function renderList(list) {
     listEl.innerHTML = '';
     emptyBox.classList.toggle('hidden', list.length > 0);
 
-    list.forEach(cat => {
+    list.forEach((cat, index) => {
         const card = document.createElement('div');
         card.className = 'cat-card';
         card.onclick = () => openDetail(cat);
@@ -69,6 +69,9 @@ function renderList(list) {
             <div class="cat-photo-wrap">
                 <img class="cat-photo ${isPassed ? 'passed' : ''}"
                      src="${escapeHtml(photo)}" alt="${escapeHtml(cat.name || '')}"
+                     width="100" height="100"
+                     loading="${index < 2 ? 'eager' : 'lazy'}"
+                     decoding="async" fetchpriority="${index === 0 ? 'high' : 'low'}"
                      onerror="this.style.visibility='hidden'">
             </div>
             <div class="cat-info">
@@ -118,7 +121,7 @@ function openDetail(cat) {
     content.innerHTML = `
         <button class="modal-close" id="detailClose">✕</button>
         <div class="detail-hero">
-            <img class="detail-photo ${isPassed ? 'passed' : ''}" src="${escapeHtml(photo)}" alt="${escapeHtml(cat.name || '')}" onerror="this.style.display='none'">
+            <img class="detail-photo ${isPassed ? 'passed' : ''}" src="${escapeHtml(photo)}" alt="${escapeHtml(cat.name || '')}" loading="eager" decoding="async" fetchpriority="high" onerror="this.style.display='none'">
             <div class="detail-mask"></div>
             <div class="detail-hero-info">
                 <div class="detail-name-row">
@@ -250,7 +253,7 @@ function openEditForm() {
                 <div class="photo-grid" id="photoGrid">
                     ${photosArr.map((p, i) => `
                         <div class="photo-grid-item">
-                            <img class="photo-grid-img" src="${escapeHtml(p)}" alt="图${i+1}">
+                            <img class="photo-grid-img" src="${escapeHtml(p)}" alt="图${i+1}" loading="lazy" decoding="async">
                         </div>
                     `).join('')}
                     <div class="photo-add-btn" id="photoAddBtn">

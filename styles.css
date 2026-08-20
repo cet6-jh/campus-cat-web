@@ -139,6 +139,8 @@ input, textarea, select { font-size: 16px; }
 }
 .cat-card {
     display: flex;
+    content-visibility: auto;
+    contain-intrinsic-size: 128px;
     padding: 14px;
     background: var(--card);
     border-radius: 16px;
